@@ -342,15 +342,41 @@ async function loadChapter(i,startAt){
   const x=day[i], t=TRACKS[x.b][x.c], tok=++loadTok;
   $("pNow").textContent=chName(x);
   $("tDur").textContent=fmt(t.dur); $("tCur").textContent=fmt(startAt||0); $("seek").value=0;
-  let src=t.url;
-  if(db && have.has(keyOf(x))){
-    try{ const blob=await idbGet(keyOf(x)); if(tok!==loadTok) return;
-      if(blob){ if(objUrl) URL.revokeObjectURL(objUrl); objUrl=URL.createObjectURL(blob); src=objUrl; } }catch(e){}
+  let src=t.url; const k=keyOf(x);
+  if(pre && pre.key===k){ src=pre.url; useObj(pre.url); pre=null; }          // 미리 준비해 둔 다음 장 (기다림 없이 바로 전환)
+  else if(db && have.has(k)){
+    try{ const blob=await idbGet(k); if(tok!==loadTok) return;
+      if(blob){ src=URL.createObjectURL(blob); useObj(src); } }catch(e){}
   }
+  advanced=false; resumeMsg=false;
   au.src=src; au.playbackRate=S.rate;
   if(startAt>1) au.addEventListener("loadedmetadata",()=>{ try{ au.currentTime=Math.min(startAt,(au.duration||startAt)-1); }catch(e){} },{once:true});
-  if(wantPlay) au.play().catch(()=>{ wantPlay=false; setPlayIcon(); });
-  setMedia();
+  if(wantPlay) tryPlay();
+  setMedia(); prepNext();
+}
+function useObj(u){ if(objUrl && objUrl!==u) URL.revokeObjectURL(objUrl); objUrl=u; }
+function tryPlay(){
+  const p=au.play(); if(!p||!p.catch) return;
+  p.catch(e=>{
+    if(e && e.name==="AbortError") return;                 // 다른 장을 불러오느라 중단된 것: 무시
+    wantPlay=false; setPlayIcon();
+    if(curDay>=0){ resumeMsg=true; showMsg("다음 장 재생이 멈췄습니다 (화면이 꺼져 있으면 기기가 막을 수 있습니다). ▶ 를 누르면 "+chName(PLAN[curDay][ci])+"부터 이어집니다."); }
+  });
+}
+// 오프라인 저장된 다음 장을 미리 꺼내 두기
+let pre=null;
+async function prepNext(){
+  if(curDay<0||!db) return; const day=PLAN[curDay], nx=day[ci+1]; if(!nx) return;
+  const k=keyOf(nx); if(!have.has(k) || (pre&&pre.key===k)) return;
+  try{ const blob=await idbGet(k); if(!blob||curDay<0||PLAN[curDay][ci+1]!==nx) return;
+    if(pre) URL.revokeObjectURL(pre.url); pre={key:k,url:URL.createObjectURL(blob)}; }catch(e){}
+}
+// 장이 끝났을 때 다음 장으로 (한 장에 한 번만)
+let advanced=false, resumeMsg=false;
+function advance(){
+  if(curDay<0||advanced) return; advanced=true;
+  if(ci+1<PLAN[curDay].length){ wantPlay=true; loadChapter(ci+1,0); savePos(); }
+  else { const d=curDay; if(!(d in S.done)) S.done[d]=todayStr(); S.pos=null; save(); showDone(d); }
 }
 
 function setPlayIcon(){ const p=!au.paused; $("bPlay").textContent=p?"❚❚":"▶"; $("bPlay").setAttribute("aria-label",p?"일시정지":"재생"); }
@@ -368,18 +394,20 @@ function setMedia(){
 }
 function savePos(){ if(curDay<0) return; S.pos={day:curDay,ci,t:Math.floor(au.currentTime||0)}; save(); }
 
-au.addEventListener("play",()=>{ wantPlay=true; setPlayIcon(); showMsg(""); });
-au.addEventListener("pause",()=>{ setPlayIcon(); savePos(); });
+au.addEventListener("play",()=>{ wantPlay=true; resumeMsg=false; setPlayIcon(); showMsg(""); try{ navigator.mediaSession.playbackState="playing"; }catch(e){} });
+au.addEventListener("pause",()=>{
+  setPlayIcon(); savePos();
+  // 일부 기기는 끝에서 'ended' 없이 멈추기만 함 → 잠시 뒤에도 끝 지점이면 다음 장으로
+  if(wantPlay && nearEnd()){ const tok=loadTok; setTimeout(()=>{ if(tok===loadTok && au.paused && nearEnd()) advance(); },1200); }
+});
 au.addEventListener("timeupdate",()=>{
   if(!seeking && au.duration){ $("seek").value=Math.round(au.currentTime/au.duration*1000); }
   $("tCur").textContent=fmt(au.currentTime); if(au.duration) $("tDur").textContent=fmt(au.duration);
   const n=Date.now(); if(n-lastSave>5000){ lastSave=n; savePos(); }
+  if(wantPlay && au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.05){ const tok=loadTok; setTimeout(()=>{ if(tok===loadTok && nearEnd() && !advanced) advance(); },1500); }
 });
-au.addEventListener("ended",()=>{
-  if(curDay<0) return;
-  if(ci+1<PLAN[curDay].length){ wantPlay=true; loadChapter(ci+1,0); savePos(); }
-  else { const d=curDay; if(!(d in S.done)) S.done[d]=todayStr(); S.pos=null; save(); showDone(d); }
-});
+au.addEventListener("ended",advance);
+function nearEnd(){ return au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.6; }
 au.addEventListener("error",()=>{
   if(!au.getAttribute("src")||curDay<0) return; wantPlay=false; setPlayIcon();
   showMsg(have.has(keyOf(PLAN[curDay][ci]))?"저장된 오디오를 재생하지 못했습니다. ▶ 를 다시 눌러 주세요.":"이 장은 오프라인에 저장되어 있지 않아 인터넷이 필요합니다. 연결을 확인한 뒤 ▶ 를 다시 눌러 주세요.");
@@ -388,7 +416,7 @@ au.addEventListener("error",()=>{
 $("bPlay").onclick=()=>{
   if(curDay<0) return;
   if(!au.getAttribute("src")||au.error){ wantPlay=true; loadChapter(ci,au.error?(au.currentTime||0):0); return; }
-  if(au.paused) au.play().catch(()=>showMsg("재생을 시작하지 못했습니다. 다시 눌러 주세요.")); else { wantPlay=false; au.pause(); }
+  if(au.paused){ wantPlay=true; au.play().catch(e=>{ if(!e||e.name!=="AbortError") showMsg("재생을 시작하지 못했습니다. 다시 눌러 주세요."); }); } else { wantPlay=false; au.pause(); }
 };
 $("bBack").onclick=()=>{ au.currentTime=Math.max(0,au.currentTime-10); };
 $("bFwd").onclick=()=>{ if(au.duration) au.currentTime=Math.min(au.duration-0.5,au.currentTime+10); };
@@ -497,6 +525,7 @@ function boot(keepTab){
 initDb().then(()=>boot());   // 저장된 오디오 목록을 읽은 뒤 시작
 // 날짜가 바뀐 뒤 다시 열면 그날 분량으로 자동 전환
 let bootDate=todayStr();
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && resumeMsg && au.paused && curDay>=0){ wantPlay=true; tryPlay(); } });
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && todayStr()!==bootDate){ bootDate=todayStr(); if(au.paused){ calTo(new Date()); boot(); } } });
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
