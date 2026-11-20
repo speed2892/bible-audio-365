@@ -1,533 +1,876 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#1d2a44">
-<link rel="manifest" href="manifest.webmanifest">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 일 년 성경읽기 · 낭독</title>
+<link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
-<title>성경 낭독 365</title>
+<meta name="theme-color" content="#2c4a7c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="성경읽기">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <style>
-:root{
-  --bg:#f4efe6; --card:#fffdf8; --ink:#1d2a44; --sub:#6b7386; --line:#e3dccd;
-  --accent:#b9772a; --accent-ink:#fff; --done:#4c7a5a; --done-bg:#e3eee5; --soft:#efe7d8;
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600&display=swap');
+:root {
+  --primary:#2c4a7c; --accent:#c8a96e; --light:#f5f0e8;
+  --text:#1a1a2e; --muted:#6b6b7a; --border:#d4cfc4;
+  --done-bg:#e8f4e8; --done-check:#2d7a3a;
+  --today-bg:#fff8e8; --today-border:#c8a96e;
 }
-@media (prefers-color-scheme: dark){
-  :root{ --bg:#131a29; --card:#1b2437; --ink:#ece6d8; --sub:#98a1b5; --line:#2b364d;
-         --accent:#e0a458; --accent-ink:#1b2437; --done:#7fb38e; --done-bg:#22382d; --soft:#232e45; }
-}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);
-  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
-  line-height:1.5;-webkit-font-smoothing:antialiased}
-button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
-.wrap{max-width:560px;margin:0 auto;padding:20px 14px 48px}
-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
-h1{font-size:19px;margin:0;letter-spacing:-.02em}
-h1 small{font-weight:500;color:var(--sub);font-size:13px;margin-left:6px}
-.tabs{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:12px;margin-bottom:14px}
-.tabs button{flex:1;padding:9px 0;border-radius:9px;font-weight:600;font-size:14px;color:var(--sub)}
-.tabs button[aria-selected=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 20px}
-.eyebrow{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.02em}
-.range{font-size:27px;font-weight:800;letter-spacing:-.03em;line-height:1.25;margin:4px 0 2px;word-break:keep-all}
-.meta{font-size:13px;color:var(--sub)}
-.bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin:14px 0 0}
-.bar i{display:block;height:100%;background:var(--done);border-radius:3px;transition:width .3s}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 6px}
-.chip{padding:7px 11px;border-radius:999px;background:var(--soft);font-size:13px;font-weight:600;color:var(--sub)}
-.chip.on{background:var(--ink);color:var(--card)}
-.chip.fin{color:var(--done)}
-.chip.fin::before{content:"✓ "}
-.now{margin-top:16px;font-size:15px;font-weight:700}
-input[type=range]{width:100%;accent-color:var(--accent);margin:10px 0 0;height:22px}
-.times{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
-.ctrl{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px}
-.ctrl button{width:46px;height:46px;border-radius:50%;font-size:13px;font-weight:700;color:var(--sub)}
-.ctrl button:hover{background:var(--soft)}
-.ctrl .play{width:68px;height:68px;background:var(--accent);color:var(--accent-ink);font-size:24px}
-.ctrl .play:hover{background:var(--accent);filter:brightness(1.06)}
-.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;font-size:13px;color:var(--sub)}
-select,input[type=date]{font:inherit;font-size:13px;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
-.mini{padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:13px;color:var(--ink)}
-.msg{margin-top:14px;padding:11px 13px;border-radius:10px;background:var(--soft);font-size:13px;display:none}
-.msg.show{display:block}
-.missed{display:block;width:100%;text-align:left;margin-bottom:10px;padding:10px 14px;border-radius:12px;background:var(--soft);font-size:13px;font-weight:600}
-.missed b{color:var(--accent)}
-.donebox{text-align:center;padding:10px 0 4px}
-.donebox .big{font-size:40px;line-height:1;color:var(--done)}
-.donebox h2{font-size:21px;margin:10px 0 4px;letter-spacing:-.02em}
-.btn{display:inline-block;margin-top:14px;padding:11px 20px;border-radius:999px;background:var(--ink);color:var(--card);font-weight:700;font-size:14px}
-.btn.ghost{background:none;color:var(--sub);border:1px solid var(--line)}
-/* 달력 */
-.calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.calhead h2{font-size:18px;margin:0;letter-spacing:-.02em}
-.calhead button{width:38px;height:38px;border-radius:50%;font-size:18px;color:var(--sub)}
-.calhead button:hover{background:var(--soft)}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal .wd{font-size:11px;font-weight:700;color:var(--sub);text-align:center;padding:2px 0 4px}
-.cal .wd:first-child{color:#c2553f}
-.cell{min-height:62px;border-radius:10px;border:1px solid var(--line);background:var(--card);padding:5px 4px 4px;text-align:left;display:flex;flex-direction:column;gap:2px;overflow:hidden;position:relative}
-.cell .d{font-size:12px;font-weight:700;color:var(--sub);line-height:1}
-.cell .l{font-size:10.5px;font-weight:600;line-height:1.25;word-break:keep-all;overflow-wrap:anywhere;letter-spacing:-.02em}
-.cell.none{border-color:transparent;background:none;cursor:default}
-.cell.none .d{opacity:.45}
-.cell.ok{background:var(--done-bg);border-color:transparent}
-.cell.ok .d::after{content:" ✓";color:var(--done)}
-.cell.today{border:2px solid var(--accent);padding:4px 3px 3px}
-.cell.today .d{color:var(--accent)}
-.cell.sel{box-shadow:0 0 0 2px var(--ink) inset}
-.cell .off{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin:10px 2px 0}
-.legend i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:4px;vertical-align:middle}
-.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px;font-size:13px;color:var(--sub)}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Noto Sans KR',sans-serif; background:#e8e4dc; color:var(--text); }
+button { font-family:inherit; }
+.page-wrap { max-width:900px; margin:1.5rem auto; background:#fff; padding:1.5rem 1.8rem; border-radius:8px; box-shadow:0 4px 24px rgba(0,0,0,.15); }
+.screen-controls { display:flex; gap:8px; margin-bottom:.8rem; align-items:center; flex-wrap:wrap; }
+.btn { padding:7px 14px; border-radius:6px; border:none; font-family:inherit; font-size:13px; cursor:pointer; font-weight:500; transition:all .15s; }
+.btn-print { background:var(--primary); color:#fff; }
+.btn-print:hover { background:#1e3560; }
+.btn-alarm { background:#7a4a1a; color:#fff; }
+.btn-alarm.active { background:var(--done-check); }
+.btn-reset { background:transparent; border:1.5px solid var(--border); color:var(--muted); }
+.btn-reset:hover { background:var(--light); }
+.alarm-time-wrap { display:none; align-items:center; gap:6px; }
+.sync-indicator { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:4px; }
+.sync-dot { width:8px; height:8px; border-radius:50%; background:#ccc; display:inline-block; transition:background .3s; }
+.overall-progress { flex:1; text-align:right; font-size:12px; color:var(--muted); }
+.prog-bar-wrap { width:100%; height:5px; background:var(--light); border-radius:4px; margin-bottom:1rem; overflow:hidden; }
+.prog-bar-fill { height:100%; background:var(--done-check); border-radius:4px; transition:width .4s; }
+.alarm-status { display:none; font-size:12px; padding:6px 12px; margin-bottom:8px; border-radius:6px; }
+/* Header */
+.chart-header { border:2px solid var(--primary); border-radius:6px; overflow:hidden; margin-bottom:12px; }
+.header-top { background:var(--primary); color:#fff; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.header-title { font-family:'Noto Serif KR',serif; font-size:19px; font-weight:600; letter-spacing:3px; }
+.header-date-nav { display:flex; align-items:center; gap:6px; }
+.nav-btn { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:#fff; width:26px; height:26px; border-radius:4px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:inherit; }
+.nav-btn:hover { background:rgba(255,255,255,.3); }
+.header-date-text { font-size:13px; font-weight:500; min-width:180px; text-align:center; }
+.header-today-btn { background:rgba(200,169,110,.3); border:1px solid rgba(200,169,110,.7); color:#ffe9b0; padding:3px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-family:inherit; }
+.today-banner { background:var(--today-bg); border-top:1px solid var(--today-border); padding:8px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.today-label { font-size:10px; font-weight:700; color:var(--accent); letter-spacing:2px; white-space:nowrap; flex-shrink:0; }
+.today-reading { font-size:13px; font-weight:500; color:var(--primary); flex:1; }
+.today-reading em { font-style:normal; color:var(--muted); font-size:11px; font-weight:400; margin-left:6px; }
+.day-of-year { font-size:11px; color:var(--muted); white-space:nowrap; flex-shrink:0; }
+/* 낭독 플레이어 */
+.player { border-top:1px solid var(--today-border); background:#fffdf7; padding:12px 16px 12px; }
+.pl-top { display:flex; align-items:center; gap:12px; }
+.pl-play { width:52px; height:52px; border-radius:50%; border:none; background:var(--primary); color:#fff; font-size:20px; cursor:pointer; flex-shrink:0; }
+.pl-play:hover { background:#1e3560; }
+.pl-info { flex:1; min-width:0; }
+.pl-now { font-size:16px; font-weight:700; color:var(--primary); }
+.pl-sub { font-size:11.5px; color:var(--muted); margin-top:1px; }
+.btn-read { background:var(--accent); color:#3a2a08; font-weight:700; white-space:nowrap; }
+.btn-read:hover { filter:brightness(1.05); }
+.pl-chips { display:flex; flex-wrap:wrap; gap:5px; margin:10px 0 4px; }
+.chip { padding:5px 10px; border-radius:999px; border:1px solid var(--border); background:#fff; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; }
+.chip.on { background:var(--primary); border-color:var(--primary); color:#fff; }
+.chip.fin { color:var(--done-check); border-color:#b9dcbf; background:var(--done-bg); }
+.chip.fin::before { content:"✓ "; }
+.pl-seek { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.pl-seek input { flex:1; accent-color:var(--primary); }
+.pl-ctrl { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:6px; font-size:12px; color:var(--muted); }
+.pl-ctrl button { border:1px solid var(--border); background:#fff; border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer; color:var(--text); }
+.pl-ctrl button:hover { background:var(--light); }
+.pl-ctrl select { font-family:inherit; font-size:12px; padding:4px 6px; border:1px solid var(--border); border-radius:6px; background:#fff; }
+.pl-ctrl label { display:flex; align-items:center; gap:4px; cursor:pointer; }
+.pl-ctrl .sp { flex:1; }
+.pl-msg { display:none; margin-top:8px; padding:8px 10px; border-radius:6px; background:var(--light); font-size:12px; color:var(--text); }
+.pl-msg.show { display:block; }
+/* Grid */
+.books-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.book-card { border:1px solid var(--border); border-radius:4px; overflow:hidden; background:#fff; }
+.book-card.today-card { border-color:var(--today-border); box-shadow:0 0 0 2px rgba(200,169,110,.3); }
+.book-title-row { display:flex; align-items:center; background:var(--light); padding:4px 7px; border-bottom:1px solid var(--border); cursor:pointer; user-select:none; gap:4px; }
+.book-title-row:hover { background:#ede8de; }
+.book-name { font-size:11px; font-weight:500; color:var(--primary); flex:1; }
+.book-chapters-count { font-size:9.5px; color:var(--muted); white-space:nowrap; }
+.book-done-mark { font-size:9.5px; color:var(--done-check); font-weight:700; display:none; margin-left:2px; }
+.book-card.all-done .book-done-mark { display:inline; }
+.book-card.all-done .book-title-row { background:var(--done-bg); }
+.book-card.all-done .book-name { color:var(--done-check); }
+.chapters-wrap { padding:4px 5px; display:flex; flex-wrap:wrap; gap:2px; }
+.ch { width:14px; height:14px; border:1px solid #c8c4bc; border-radius:2px; font-size:7.5px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#aaa; transition:all .1s; user-select:none; }
+.ch:hover { border-color:var(--primary); color:var(--primary); }
+.ch.done { background:var(--done-check); border-color:var(--done-check); color:#fff; }
+.ch.today-ch { border-color:var(--today-border); background:var(--today-bg); color:#9a7010; font-weight:700; }
+.ch.playing { outline:2px solid var(--primary); outline-offset:1px; }
+.ch.done::after { content:'✓'; }
+.ch:not(.done)::after { content:attr(data-n); }
 /* 오프라인 */
-.off h2{font-size:17px;margin:0 0 6px}
-.off p,.off li{font-size:13.5px;color:var(--sub);margin:6px 0}
-.off ol{padding-left:20px;margin:8px 0}
-.off code{background:var(--soft);padding:1px 5px;border-radius:5px;font-size:12.5px;color:var(--ink)}
-.stat{font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
-.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-footer{margin-top:22px;text-align:center;font-size:12px;color:var(--sub)}
-footer a{color:inherit}
-[hidden]{display:none!important}
+.offline { margin-top:12px; border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:12px; color:var(--muted); }
+.offline summary { cursor:pointer; font-weight:500; color:var(--primary); }
+.offline p, .offline li { margin:6px 0; line-height:1.55; }
+.offline ol { padding-left:18px; }
+.offline .acts { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+.offline .acts button { border:1px solid var(--border); background:#fff; border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; }
+.offline code { background:var(--light); padding:0 4px; border-radius:4px; }
+.chart-footer { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:10px; color:var(--muted); }
+[hidden] { display:none !important; }
+@media (max-width:640px){
+  .page-wrap { margin:0; border-radius:0; padding:1rem .8rem; }
+  .books-grid { grid-template-columns:repeat(2,1fr); }
+  .header-date-text { min-width:0; }
+  .btn-read { padding:7px 10px; }
+}
+@media print {
+  @page { size:A4 portrait; margin:8mm 10mm; }
+  body { background:#fff; }
+  .screen-controls,.prog-bar-wrap,.alarm-status,.player,.offline { display:none !important; }
+  .page-wrap { margin:0; padding:0; box-shadow:none; border-radius:0; max-width:100%; }
+  .header-date-nav,.header-today-btn { display:none !important; }
+  .books-grid { grid-template-columns:repeat(5,1fr); gap:4px; }
+  .ch { width:12px; height:12px; font-size:6.5px; }
+  .ch.playing { outline:none; }
+  .book-title-row { padding:3px 5px; }
+  .book-name { font-size:10px; }
+  .chapters-wrap { padding:3px 4px; gap:1px; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header><h1>성경 낭독 365<small id="hCount"></small></h1></header>
-  <div class="tabs" role="tablist">
-    <button role="tab" id="tabToday" aria-selected="true">낭독</button>
-    <button role="tab" id="tabCal" aria-selected="false">달력</button>
-    <button role="tab" id="tabOff" aria-selected="false">오프라인</button>
+<div class="page-wrap">
+  <div class="screen-controls">
+    <button class="btn btn-print" onclick="window.print()">🖨️ A4 인쇄</button>
+    <button class="btn btn-alarm" id="alarm-btn" onclick="toggleAlarm()">🔕 알림 설정</button>
+    <div class="alarm-time-wrap" id="alarm-time-wrap">
+      <label style="font-size:12px;color:var(--muted);">알림 시간</label>
+      <input type="time" id="alarm-time-input" value="08:00"
+        style="font-family:inherit;font-size:13px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;color:var(--text);background:#fff;cursor:pointer;"
+        onchange="changeAlarmTime(this.value)">
+    </div>
+    <button class="btn btn-reset" onclick="resetAll()">초기화</button>
+    <div class="sync-indicator">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-text">연결 중...</span>
+    </div>
+    <div class="overall-progress" id="overall-text"></div>
   </div>
+  <div class="alarm-status" id="alarm-status"></div>
+  <div class="prog-bar-wrap"><div class="prog-bar-fill" id="prog-fill" style="width:0%"></div></div>
 
-  <section id="viewToday">
-    <button class="missed" id="missed" hidden></button>
-    <div class="card" id="player">
-      <div class="eyebrow" id="pEyebrow"></div>
-      <div class="range" id="pRange"></div>
-      <div class="meta" id="pMeta"></div>
-      <div class="bar"><i id="pBar"></i></div>
-      <div class="chips" id="pChips"></div>
-      <div class="now" id="pNow"></div>
-      <input type="range" id="seek" min="0" max="1000" value="0" aria-label="재생 위치">
-      <div class="times"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
-      <div class="ctrl">
-        <button id="bPrev" aria-label="이전 장">◀◀</button>
-        <button id="bBack" aria-label="10초 뒤로">−10</button>
-        <button id="bPlay" class="play" aria-label="재생">▶</button>
-        <button id="bFwd" aria-label="10초 앞으로">+10</button>
-        <button id="bNext" aria-label="다음 장">▶▶</button>
+  <div class="chart-header">
+    <div class="header-top">
+      <div class="header-title">일 년 성경 읽기 차트</div>
+      <div class="header-date-nav">
+        <button class="nav-btn" onclick="shiftDay(-1)" aria-label="전날">&#8249;</button>
+        <div class="header-date-text" id="header-date-text"></div>
+        <button class="nav-btn" onclick="shiftDay(1)" aria-label="다음날">&#8250;</button>
+        <button class="header-today-btn" onclick="goToday()">오늘</button>
       </div>
-      <div class="row">
+    </div>
+    <div class="today-banner">
+      <div class="today-label">오늘 읽을 말씀</div>
+      <div class="today-reading" id="today-reading">—</div>
+      <div class="day-of-year" id="day-of-year"></div>
+    </div>
+
+    <!-- 낭독 플레이어 -->
+    <div class="player" id="player">
+      <div class="pl-top">
+        <button class="pl-play" id="bPlay" aria-label="낭독 재생">▶</button>
+        <div class="pl-info">
+          <div class="pl-now" id="pNow">—</div>
+          <div class="pl-sub" id="pSub"></div>
+        </div>
+        <button class="btn btn-read" id="bRead" title="jw.org 연구용 성경 본문을 새 창으로 엽니다">📖 본문 보기</button>
+      </div>
+      <div class="pl-chips" id="pChips"></div>
+      <div class="pl-seek">
+        <span id="tCur">0:00</span>
+        <input type="range" id="seek" min="0" max="1000" value="0" aria-label="재생 위치">
+        <span id="tDur">0:00</span>
+      </div>
+      <div class="pl-ctrl">
+        <button id="bPrev" aria-label="이전 장">◀◀ 이전 장</button>
+        <button id="bBack" aria-label="10초 뒤로">−10초</button>
+        <button id="bFwd" aria-label="10초 앞으로">+10초</button>
+        <button id="bNext" aria-label="다음 장">다음 장 ▶▶</button>
+        <span class="sp"></span>
         <label>속도
           <select id="rate">
             <option value="0.8">0.8배</option><option value="1" selected>1.0배</option>
             <option value="1.2">1.2배</option><option value="1.5">1.5배</option><option value="2">2.0배</option>
           </select>
         </label>
-        <button class="mini" id="bMark"></button>
+        <label title="낭독이 다음 장으로 넘어가면 열어 둔 본문 창도 함께 넘어갑니다"><input type="checkbox" id="follow" checked> 본문 따라가기</label>
       </div>
-      <div class="msg" id="msg"></div>
+      <div class="pl-msg" id="msg"></div>
     </div>
+  </div>
 
-    <div class="card" id="doneCard" hidden>
-      <div class="donebox">
-        <div class="big">✓</div>
-        <h2 id="dTitle"></h2>
-        <div class="meta" id="dSub"></div>
-        <div><button class="btn" id="bAhead">다음 분량 미리 듣기</button></div>
-        <div><button class="btn ghost" id="bAgain">다시 듣기</button></div>
-      </div>
-    </div>
-  </section>
+  <div id="books-container"></div>
 
-  <section id="viewCal" hidden>
-    <div class="calhead">
-      <button id="calPrev" aria-label="이전 달">‹</button>
-      <h2 id="calTitle"></h2>
-      <button id="calNext" aria-label="다음 달">›</button>
+  <details class="offline" id="offline">
+    <summary>오프라인 오디오 (인터넷 없이 듣기) — <span id="offStat">확인 중</span></summary>
+    <p>저장된 장은 인터넷 없이 재생되고, 저장되지 않은 장은 jw.org에서 바로 재생됩니다.</p>
+    <div class="acts">
+      <button id="bPickDir">폴더에서 가져오기</button>
+      <button id="bPickFiles">파일 선택해서 가져오기</button>
+      <button id="bWipe">저장한 오디오 모두 지우기</button>
+      <span id="wipeBox" hidden>정말 지울까요? <button id="bWipeYes">지우기</button> <button id="bWipeNo">취소</button></span>
     </div>
-    <div class="cal" id="cal"></div>
-    <div class="legend"><span>날짜를 누르면 그날 분량이 재생됩니다</span><span>✓ 들음</span><span><i></i>오프라인 저장됨</span></div>
-    <div class="tools">
-      <label>시작일 <input type="date" id="startDate"></label>
-      <button class="mini" id="bToday">오늘로</button>
-      <button class="mini" id="bReset">진도 지우기</button>
-      <span id="confirmBox" hidden>들은 표시를 모두 지울까요? <button class="mini" id="bResetYes">지우기</button> <button class="mini" id="bResetNo">취소</button></span>
-    </div>
-  </section>
+    <input type="file" id="inDir" webkitdirectory multiple hidden>
+    <input type="file" id="inFiles" accept=".mp3,audio/mpeg" multiple hidden>
+    <div class="pl-msg" id="offMsg"></div>
+    <ol>
+      <li>PC에서 <code>download-audio.bat</code>을 실행하면 <code>bible-audio</code> 폴더에 낭독 파일 1,189개(약 2.3GB)가 받아집니다.</li>
+      <li>PC에서는 <b>폴더에서 가져오기</b>로 그 폴더를 고릅니다.</li>
+      <li>휴대폰·태블릿은 그 폴더를 기기로 복사한 뒤 <b>파일 선택해서 가져오기</b>로 전체 선택합니다. 나누어 가져와도 됩니다.</li>
+    </ol>
+  </details>
 
-  <section id="viewOff" hidden>
-    <div class="card off">
-      <h2>오프라인 저장</h2>
-      <div class="stat" id="offStat">–</div>
-      <p id="offSub">저장된 장은 인터넷 없이 재생되고, 저장되지 않은 장은 jw.org에서 바로 재생됩니다.</p>
-      <div class="acts">
-        <button class="btn" id="bPickDir" style="margin-top:0">폴더에서 가져오기</button>
-        <button class="btn ghost" id="bPickFiles" style="margin-top:0">파일 선택해서 가져오기</button>
-      </div>
-      <input type="file" id="inDir" webkitdirectory multiple hidden>
-      <input type="file" id="inFiles" accept=".mp3,audio/mpeg" multiple hidden>
-      <div class="msg" id="offMsg"></div>
-      <ol>
-        <li>PC에서 <code>download-audio.bat</code>을 실행하면 <code>bible-audio</code> 폴더에 낭독 파일 1,189개(약 2.3GB)가 받아집니다.</li>
-        <li>PC에서는 <b>폴더에서 가져오기</b>로 그 폴더를 고릅니다.</li>
-        <li>휴대폰·태블릿은 그 폴더를 기기로 복사한 뒤, 이 화면에서 <b>파일 선택해서 가져오기</b>로 파일을 전체 선택합니다. 한 번에 다 하지 않고 나누어 가져와도 됩니다.</li>
-      </ol>
-      <p>가져온 파일은 이 앱 안에 따로 저장되므로, 가져온 뒤에는 원래 폴더를 지워도 됩니다.</p>
-      <div class="acts">
-        <button class="mini" id="bWipe">저장한 오디오 모두 지우기</button>
-        <span id="wipeBox" hidden style="font-size:13px;color:var(--sub)">정말 지울까요? <button class="mini" id="bWipeYes">지우기</button> <button class="mini" id="bWipeNo">취소</button></span>
-      </div>
-    </div>
-  </section>
-
-  <footer>낭독 오디오 출처: <a href="https://www.jw.org/ko/라이브러리/성경/" target="_blank" rel="noopener">jw.org</a> 신세계역 성경 · 진도와 저장한 오디오는 이 기기에만 보관됩니다</footer>
+  <div class="chart-footer">
+    <span>클릭=체크 &nbsp;|&nbsp; 길게누르기(모바일)/더블클릭(PC)=jw.org 열기 &nbsp;|&nbsp; 낭독을 끝까지 들은 장은 자동 체크</span>
+    <span id="footer-progress"></span>
+  </div>
 </div>
 <audio id="au" preload="metadata"></audio>
 
 <script>
-/* ---------- 성경 66권: [이름, 약어, 장 수] ---------- */
-const BOOKS=[["창세기","창",50],["출애굽기","출",40],["레위기","레",27],["민수기","민",36],["신명기","신",34],["여호수아","수",24],["재판관기","판",21],["룻기","룻",4],["사무엘상","삼상",31],["사무엘하","삼하",24],["열왕기상","왕상",22],["열왕기하","왕하",25],["역대기상","대상",29],["역대기하","대하",36],["에스라","라",10],["느헤미야","느",13],["에스더","더",10],["욥기","욥",42],["시편","시",150],["잠언","잠",31],["전도서","전",12],["솔로몬의 노래","아",8],["이사야","사",66],["예레미야","렘",52],["예레미야 애가","애",5],["에스겔","겔",48],["다니엘","단",12],["호세아","호",14],["요엘","욜",3],["아모스","암",9],["오바댜","옵",1],["요나","욘",4],["미가","미",7],["나훔","나",3],["하박국","합",3],["스바냐","습",3],["학개","학",2],["스가랴","슥",14],["말라기","말",4],["마태복음","마",28],["마가복음","막",16],["누가복음","눅",24],["요한복음","요",21],["사도행전","행",28],["로마서","롬",16],["고린도 전서","고전",16],["고린도 후서","고후",13],["갈라디아서","갈",6],["에베소서","엡",6],["빌립보서","빌",4],["골로새서","골",4],["데살로니가 전서","살전",5],["데살로니가 후서","살후",3],["디모데 전서","딤전",6],["디모데 후서","딤후",4],["디도서","딛",3],["빌레몬서","몬",1],["히브리서","히",13],["야고보서","약",5],["베드로 전서","벧전",5],["베드로 후서","벧후",3],["요한 1서","요1",5],["요한 2서","요2",1],["요한 3서","요3",1],["유다서","유",1],["요한 계시록","계",22]];
-const DAYS=365;
+/* ════════════════════════════
+   데이터
+════════════════════════════ */
+var BOOKS = [
+  {name:"창세기",ch:50},{name:"출애굽기",ch:40},{name:"레위기",ch:27},
+  {name:"민수기",ch:36},{name:"신명기",ch:34},{name:"여호수아",ch:24},
+  {name:"사사기",ch:21},{name:"룻기",ch:4},{name:"사무엘상",ch:31},
+  {name:"사무엘하",ch:24},{name:"열왕기상",ch:22},{name:"열왕기하",ch:25},
+  {name:"역대상",ch:29},{name:"역대하",ch:36},{name:"에스라",ch:10},
+  {name:"느헤미야",ch:13},{name:"에스더",ch:10},{name:"욥기",ch:42},
+  {name:"시편",ch:150},{name:"잠언",ch:31},{name:"전도서",ch:12},
+  {name:"아가",ch:8},{name:"이사야",ch:66},{name:"예레미야",ch:52},
+  {name:"예레미야애가",ch:5},{name:"에스겔",ch:48},{name:"다니엘",ch:12},
+  {name:"호세아",ch:14},{name:"요엘",ch:3},{name:"아모스",ch:9},
+  {name:"오바댜",ch:1},{name:"요나",ch:4},{name:"미가",ch:7},
+  {name:"나훔",ch:3},{name:"하박국",ch:3},{name:"스바냐",ch:3},
+  {name:"학개",ch:2},{name:"스가랴",ch:14},{name:"말라기",ch:4},
+  {name:"마태복음",ch:28},{name:"마가복음",ch:16},{name:"누가복음",ch:24},
+  {name:"요한복음",ch:21},{name:"사도행전",ch:28},{name:"로마서",ch:16},
+  {name:"고린도전서",ch:16},{name:"고린도후서",ch:13},{name:"갈라디아서",ch:6},
+  {name:"에베소서",ch:6},{name:"빌립보서",ch:4},{name:"골로새서",ch:4},
+  {name:"데살로니가전서",ch:5},{name:"데살로니가후서",ch:3},{name:"디모데전서",ch:6},
+  {name:"디모데후서",ch:4},{name:"디도서",ch:3},{name:"빌레몬서",ch:1},
+  {name:"히브리서",ch:13},{name:"야고보서",ch:5},{name:"베드로전서",ch:5},
+  {name:"베드로후서",ch:3},{name:"요한1서",ch:5},{name:"요한2서",ch:1},
+  {name:"요한3서",ch:1},{name:"유다서",ch:1},{name:"요한계시록",ch:22}
+];
 
-/* ---------- jw.org 낭독 파일 표 (권|장: 주소 조각:길이초) ---------- */
-const DATA="Ge2;ab3397:375,6e2ba0:276,da17c6:332,be5d1b:316,e8b98e:210,42d38d:255,b0dae4:232,b4e3a7:226,35494f:293,b4ad54:239,a49974:273,ab788ec:230,7a48e0d:198,fca643:279,0a493c:245,df0f218:212,5f93f1:319,f20d2e:460,e4d232:455,3d68f7:251,0a6cfc:371,140401:292,693360:239,288716:895,c426f8:340,8cf7da:416,bf2c43e:636,83c90b0:267,0c3c964:394,420100b:517,e38430:657,43ba84:379,d8964a:242,a886e82:346,4e5c62f:316,977ed6:408,d59ffc:427,00d49d:377,87439b:251,ed1e0b:238,8c842e:615,43fc4c:466,f6d7aa:434,7b419b7d:404,5e9fa2f:365,7c1119b:361,8d09fb:432,2a5cfbe:330,4b1515:415,5bcbb80:331|Ex2;2bcf3b:214,03daff:299,9c10b9:377,405aba3:433,d10d36f:280,8081db50:342,9c7691:316,66a6d84:417,995feb:420,ee9cce:391,b291235:141,dfd6ac:602,db0524c:296,cf87f5:411,50d739:340,c4994d:475,49872c:220,b21548:348,2907d45:321,9082ef:279,3c928aa:383,b905bc:364,68d1d8:407,5febaa:203,45e073:345,f158a44:408,49e648:230,c87c4e:500,8b4609b:570,88c526:422,20cd9f1:186,768b31:475,462a939:322,4b6b21:476,ae01b93:332,bc68d9:401,5114cd:289,b0d75d:338,f49c45:457,3fb423f:335|Le2;e5d0ce9:223,a779a16:208,2da6f6f:200,339611:416,ab842c:304,81776c0:389,4de700:420,637e34:428,4ef65b:276,86d284:309,872dc3:476,853e41:120,3320ab:707,f8d122:639,913562:366,6fc3cd:455,b947f8:225,9ac049:361,5b5388:465,42add3:407,03e837:282,a32d6ae:413,c2f43c:555,420c523:261,7d39097:688,f2a269:577,4bf5c4:391|Nu2;882ca5:468,cbea647:290,175a6d:522,074d59:532,8fa553:421,227ad9:339,ff4321:839,43e510:330,5b2bf0:289,96c41c0:349,b5b48f:473,415f935:188,7ada85:295,b4893d2:544,ef47172:434,88f5e6b:605,bff9982:159,ff60556:505,a7e101c:292,6a35440:343,d3987f:424,0c39068:504,7fa07f9:364,74b6e295:284,55c061:204,ee4f98:614,4e992b:277,85e6fee:350,da31fce:477,b6ce6c:207,8ad2523:505,aff5d2:448,b817f47:404,cfea84:233,0bce3b:382,efce53e:173|De2;88cc67a:562,daa00c2:450,feb9f54:388,b1eba0:657,2fee7e:415,db5494f:293,80188e:428,aa75cbf:260,3297f01:446,7c415e:293,a23129:400,d71103:452,bfefc5:263,252ce3:312,25fbb8b:322,b08364:309,7163d1:280,ec5a1a8:276,d7cd55:266,d138d4:288,fcf42f:327,86a535:383,1ecf82:314,9e2fb8:323,8cf8f9:250,4d4e5f:296,10038e:309,a0cdea:902,78fded:375,54a3f4:313,c7b8c8:481,4681b1:638,5531c5:426,a18ea0:117|Jos2;08809c3:237,3722cc4:305,d9649b:216,4acb1d:257,cf33512:203,18d32c:342,209197:371,df5ddb:404,4ff3fca:314,13dabc:510,56719aa:259,06cc4b:164,5c4231:316,120bdb3:185,a95f88:404,fdc63b0:96,cf4429:264,c8d815:282,de1f51f:356,453033:122,65fb29:369,217269:479,7aea22:235,bfbcbc:445|Jg2;bbc999:403,d5b1de:276,923f68:353,d9f2ed:318,ef3505:408,3fb16a:542,01118d:368,f05908:415,e46ebe:638,260019:205,4761458:492,053ca1:184,ce7a89:313,b470e7e:296,6c5bbf:271,de8b3f:474,e1a24d:165,739efa:395,a34208:418,fcd0bf:558,3af20f:291|Ru2;6649615:324,05babe:350,dad515:248,8bb963:294|1Sa2;55f9676:347,0d83de9:500,2005dc2:271,abd128d:302,261db8:169,a94b65:303,b7e585a:226,d3c4db:239,d25a3d:439,69e278:406,8dbd4d0:221,23c9d1:417,6d6888:314,2f2c0ec:705,5e7aac:509,d6b17a:360,bf3ab0:680,215551:348,9be08a:319,0df7687:543,8008d0b:212,8f57b0:341,d5db13:381,11a048:276,206102:561,0ca9689:361,59b1c4f:161,14f7b1:354,b99cbb:164,d20fd6b:350,e8cdf2:151|2Sa2;b3e605:324,47c5eb:381,133bd4e:487,7c6767:170,ae12c7:277,05a6ed:279,f1c2e2:363,0e98ed:191,e5fd90:197,02ba18:243,8bb50d:341,618c96:418,2af1bd1:497,41f6ab7:467,7172f8:494,4e7019:341,e00fe90:393,05ec35:481,038bc5:617,7abcf0:377,4933a6:321,7d6bd7:485,99657cf:409,11add9:366|1Ki2;11a493:638,df2160:657,77f4775:348,c77238:314,ee4ffa2:225,dd13ebe:368,205f09:582,1eed1a:849,2b3bab:333,2451f8:346,74c9be4:533,582102:418,faf455:435,d86a2a:394,34c66e:356,30e477:381,f416f6b:292,ea785e:623,33b066:328,ba5396c:618,998560:369,7e4b73:662|2Ki2;d6e1c7:279,7943f0:371,967297:338,afb4e5:596,355067:406,9f7ffa:456,abc3f98:323,bd3521:393,368f4b:517,a5542c:509,e05613:290,de7e617:259,6bc2533:344,198df4:347,d9d542:406,51746c:256,fd6ef3a:524,fb4780:455,c2301b:468,66b0e3:303,0ede07:302,e427df:261,7a562cc:542,cf3003:246,37a5d8:337|1Ch2;cfbbc5:359,ca9619:417,69e7b3:188,7c5592:395,36a483:285,6536c1:573,704ffe:374,981234:232,dad5983:419,bdae725:164,be979a:428,5f1703:427,91a7ab:158,766ddc:166,f1d0d9:307,9062f4:385,3e1039:355,095b97:181,4e68d5:251,2cd14e:116,fa7c02:400,c6e929:268,6beeb8:289,afc8e1:250,d19e21:258,32e6a4:331,6fb57c:323,2dc81b:380,325325:454|2Ch2;d0fb8c/2:200,81dac7/3:249,64a008f:172,641864:223,0f8b29:179,d14671:564,0ad001:291,4e0774c:202,5b8c9e:361,01f520/2:246,c1362c:215,92e659:195,3de4dd/2:262,74abd4:195,4008e6f:224,19ea23:188,a6c392:194,1d733c3/2:469,492c53f:165,9437e0:484,fc06063:244,40b00d:183,e7583a:312,324f1a:372,4730ea:387,626131:295,c936a5:93,ae87a4:353,15a90a:434,b071c2:351,868113/2:301,e2d949:410,4fef1c:305,89db14:439,527a174:364,d0997b:300|Ezr2;c2b5b5:139,831a616:354,51448aa:196,a43dca:275,c8e0cd4:207,a1ad2d:279,f1ec43:323,6490ea3:390,9da6ac1:257,ab8f65:400|Ne2;8bd9db:148,bd6242:269,f52127:344,7cd9da:255,9d2b11:260,90de0e:239,96feda2:426,bf1080:276,55835c:569,d38a8f:297,2d04acb:376,238dbf:441,fb6e89:401|Es2;aee95e:281,39390c:320,f019c8:225,38408d/2:204,05942a:195,7d3185f:197,9d38dca:164,8afa00:246,f0e36b:373,61207c:41|Job2;1d842c:304,518a96:209,02ed68:241,e28e47:164,1da5b8:200,1ba02c:244,e03b68b:204,14fc00:159,8b8f174:286,8ec99b:209,dbd74f5:150,6f587f:205,af1a7f:220,ed072b:197,113da3:258,b60d7d:195,2b868a:139,590b24:142,3aeab0:236,07612a:225,55452a:264,4382cb:210,44ac10:143,edab2af:224,e33010:44,52fa891:110,face53:177,81e1a0:209,796eb2:191,2fb805:245,147b06:332,ab6c2e:190,cce3c5:261,259454:297,259edf:135,968e16:234,1111161:204,6035ee:356,1352bc:270,5c0324d:212,002bbf:287,492d07:234|Ps3;91ddb8:63,b49e70:109,6e90908:89,76ffc4:99,7c6b773:149,4eb3b36:106,08f101:165,19e49b:90,688a098:202,12ae81:182,3d079d:72,82f79f:88,fb132b:74,d8fd3e:83,dc3cc0c:59,a3ead5:110,04076c:163,9cc935:465,df9594:148,48e20f:97,6c396b:126,7c28d6:308,1101a4:69,932b52:98,856733c:196,77f1a3c:106,741560:168,761355:115,2979b7:104,512fab:148,6ce637:278,8724020:122,b29250:174,d3e144:186,88cd7c:294,fe053dc:122,d57251:332,112e6a:185,9d8ba7:157,08ef9d:217,006c555:132,4e12800:144,55622e:74,44310a:227,d09fb1:175,dc28e36:106,d3d55e7:89,ffdc87:120,fd56242:167,7d2b330:200,01a8b5:206,e621fc2:97,1107f17:91,e46665:84,63c123:230,b7c2a32:144,8cf5a7:145,a27e1b3:109,d3e3e7:212,ced7058:135,8c4d2f:84,0f983fe:132,7d823a:111,8f6336:95,58ec91:160,c0816e:182,b87eda5:74,a036203:374,3871c1:343,fa3391:68,da1982:261,1e6262:181,ac5576:225,69b44ba:220,659b28:106,209a4d6d:109,dc4242:181,1a3198:574,a4deb5:143,eded7c:179,622d54a:152,88a21e:69,a30cd41:146,c6702b:131,96ee85:116,750207:190,563593b:69,ca017f:184,3788e7:441,c855ede:169,2635ce:136,1e8685:135,08280cf:61,3880d8:196,c64a3c:94,ac399d:126,6cbcb43:107,23214f4:87,904107:97,d459d6a:51,571301:91,fd193f:244,ee10048:185,55cf324:281,e2c9081:320,998df4:372,0ef027f:317,acb71d:128,058530:264,52b63f:77,5a336e:99,b2c684:94,39032e:64,36eeea6:64,f1fea8:145,750bd2e:150,d5ebf5:25,515e0a5:231,0af2106:1427,2db9a8:58,db5f1be:68,07acfa3:75,23216a:47,7033b7:62,c1d5703:54,c49909:57,8624aa:62,a519c7:53,49d68d:61,1ab707f:73,df98ff:38,8c9484:148,e4fe00:39,ad7e0d:29,a440c8:173,b8a80e2:210,d262c4:84,015998f:94,e544cb:222,513445:129,8fabbc:114,5778d3d:93,68b7572:145,e6e0c43:143,7cd1261:182,3e8ceb:96,62bb52:154,be49a0:111,2595c2:75,7a5822:48|Pr2;378287:263,17c50b:157,6d385a:253,7a6bb6e:202,59232d7:166,925e6d:241,232cf1f:170,baf9894:264,73f352:134,0d8430b:267,78cef0:255,f6af0d:230,912e30:210,b5e0e14:294,612bd1:268,65b757:254,b9d7b7:228,332545:183,1adf36:242,658107a:240,0fd8555:247,1be7ee:229,c61f14:262,fce64a:247,2f1244:220,79dd67:214,3aa568d:220,4cee9c:241,2dfee5:217,d05426:284,b47694:216|Ec2;bfe5dc:159,85a163:303,406133:215,73e016:153,83f0e6d:220,866a685:133,038bf3:271,68b2cdd:198,1d22c25:220,6362820:170,91259f9:108,8b635d:158|Ca2;85a643b:176,4b5019:187,f0d665:128,1e01c88:196,1ea398:218,e167a8:159,306f13:153,22ab871:189|Isa2;32daf3:350,a8dcec:226,e12ebde:250,d0b014:78,7de4856:383,e53529b:182,8118dfa:292,8117203:269,27a0df6:281,7287cf:389,ccbd73:200,25e1846:69,8d16d3a:253,02cf4bc:365,fc13d98:116,1c9b2e:187,d13b40a:174,e716b2c:111,d91247:322,4ecb229:86,5629567:207,ec00f4:301,d18d867:234,9be4ae:272,299a3cd:168,7716bb:260,790c5d:173,b6aa8f0a:375,db7d09c:331,68bd856:449,4d4427a:144,88e18d:200,3bf7036:302,1cde05:223,ab05c5:126,24a1a9:272,3d5f637:480,a9cfb1:273,e758913:128,2ee60da:364,aa2bd8b:372,d040f3:298,7c0f4a:340,c31012f:404,a3faf1:364,b77607:174,f42d30:228,8837f2:295,fcf234:411,51bbd55:180,5bcf1c3:343,bdb935b:217,838de8:190,8a5ad4:230,710b2a:179,5cfeb9:160,99ab70:271,3f09a8:230,307a176:292,8c7b52d:311,8d5d805:175,d16fef0a:180,6d21c4b:280,a84e370:170,6aba5f8:386,97f131:406|Jer2;38330f3:220,a3e8db:489,d12e744:350,95aa3f:396,822620b:395,25d6c16:394,ed86cd:402,92e13c8:303,67551d3:350,6e7be2:297,b49b2d8:326,227255e:248,e18f7c6:336,b27a1df:315,abb819f:314,ab05c2:289,1beae17:350,9f410433:273,ae7337:217,7bdc64:244,37b2ae:202,a1ac772:374,08429cd:530,c3363e:141,4a89bf:461,eeb64b:303,bbb773:287,05e5b72:217,cb309f8:423,8bb327:319,01a6ce1:553,0727ce:545,d29d4c:321,2adbbd:305,60c21a:265,81f44c:421,778bf0:248,e9bd3d:367,ebf26f2:207,298dd2e:255,45e37c:222,a0dd662:294,87eafe:163,a8f9a62:460,3dca63:72,eba1cc7:362,48b87f:104,0c1d5e:541,a8b6795:520,d69a30:632,c9b8b8/2:793,86ff33a:381|La2;deaab45:380,fdcfcdd:369,94d5d11:433,48d4808:265,81f9717:167|Eze2;ab1a011:312,8c6d315:127,50222bc:326,bc28bbd:206,fbaaf59:249,bc98c9:208,4e7c9b:341,476f81:266,2d6515:178,4f38265:240,d04c1e:298,36f0a1b:341,ad19a3:315,6a2099:318,d50a1c0:82,cc1811:784,2f9a59:325,8f2d14e:402,dc40f5:152,1612e8:682,73b0b6:393,364d2e3:356,db37f7:579,074107:325,6abf7e6:216,0b2c8f2:283,7afbbc5:378,21d0c1:356,0513f6:282,586076:301,0fd0e91:280,2ae7991:445,5cba3b:451,c4ddb3c:385,f7997e9:178,4aef35f:489,1e4b33e:364,16384b:306,d44541:356,72a3ad:530,280b0d5:275,e42a51:198,e3ac26:332,5dda8f:384,ffc58f:326,70c8b9b:303,5eec173:292,3fadd1/2:379|Da2;a674b1:220,7eac00:619,b027e78:412,01bb7b5:558,3e6f50d:414,4d51288:396,34d0249:411,aab494:357,8f003e7:419,d4aabda:272,976685:599,5fa144:171|Ho2;d9441b7:144,66db62:261,298027:68,89f4cd:220,a18254:169,232a16:113,bc013c:184,d46653:151,2e12431:220,e5f06a:193,24a558:148,0731cf3:140,4b3f2f:175,183d12:115|Joe2;33664f4:213,a94594:388,8f3b9a:230|Am2;e7e340:193,914685:186,570e7d:170,640a50:192,922ff0:276,cb293e:165,4e8c25:215,6d729c:183,15c510:218|Ob2;97060a:292|Jon2;c46489/2:209,b3a734:118,3956eb:114,68a002:153|Mic2;e4a318:194,78c04f:175,2d179c:150,35faf7:199,8bec3b:167,0a68fc:198,620ed9:250|Na2;a37287:190,5dae9d4:160,1dc913:233|Hab2;908adc:195,954962:244,a4b970:242|Zep2;6aa74d:213,dc2d1a:196,fe5feb9:278|Hag2;0e1089:177,b51321:275|Zec2;295096d:252,bb2e8b:134,6c1053:132,0cc944:161,4448a47:127,1fd6abe:151,a698da:142,8aaba97:257,567f089:219,342b9a9:157,5ea305:204,d83d44:176,f1ebac5:120,cc8aeb:245|Mal2;236c1b:260,51eaff:254,957bea:281,0bdb1ed:80|Mt2;c3bd004:234,a5c00059:242,c7b69ad:169,97398ca:243,ae6dac9:534,84a92b7:405,c4d09a:292,514c8e:343,daf3891:382,4a95d84:380,633c5c:292,f55193:483,fb6e46:535,001f85:303,acb679:351,9c3da2:290,d7ca4a:282,1248fcd:328,a927ca:310,c47e3a3:323,c9a4c9:489,3f5b0f:386,766b00:392,6e7edb5:415,9b3c9cb:411,54eb71:742,ff019f:597,bb451f9:191|Mr2;c3d88b:397,f4f541:304,346b862:304,b68c3c:375,d7bc7b:395,6d3933:527,6bfdf2:341,b5c93e:366,58a53e:487,fd0a9a:530,0fcdd11:313,13a44d:475,3fe8fc:352,a67151:721,142d3e:407,0719bf:82|Lu2;53f9dd:698,15f62cb:446,24b861:466,3166c3:456,05598f:427,d3143a3:556,524ec76:558,345c90c:613,d58bc2:647,761b6c:447,bff93b:591,178308d:608,66105d:383,ba16e4:331,2b3069:307,52193b4:355,fe63ad:326,40e461d:442,7cfecd:443,5726ac:444,0bad03:332,d85cb3:676,482408:544,c9b8f53:440|Joh2;a0156a0:514,fbdf1a:255,eb842e:347,105a4d:521,3a5a26:435,fff338:645,819b29b:485,efaa93:544,43f822:441,161749:382,b45350:565,1e60319:492,b56e3ed:404,5a0425:353,08c842:275,59f756:340,00723c7:332,20f247:469,3c373b9:503,f3c04c4:353,269cb62:372|Ac2;d7cbff:277,382a636:421,327879b:274,208a54:359,503c35:426,0183b45:147,ce8161:640,400966:356,676191d:439,d1e8cd3:456,0f001ec:257,9cf3ca:264,ea79ce:545,ff0f58:259,e4dcd3:403,4277909:400,ad07d22:384,5163513:286,bd8c2d2:416,f3bcddc:364,d40eeb6:420,167cee:336,d75975:357,e6264f:259,c95efa:303,d6b59c:367,be8f75:399,5525af:307|Ro2;170b66:349,7f72b48:279,00b98c:304,3db452:255,8c841e:236,3b90e05b:239,39c65a:264,2eea43:411,6e767a:347,f92de1d:224,e85a06a:394,3bad209:219,c9ea8b:186,46c1f3:247,9b55ea:368,49748af:289|1Co2;7260b0:340,c236bf:185,f8bdd0a:251,5f55fe:251,157cd37:157,c9a58b:232,c084db:452,671e570:151,460d3c:298,26a89cf:308,c80462:319,fcf751f:265,63bea4:139,a167d5:388,fc3b5d:542,2e188c1:221|2Co2;4e71470:280,cfe599:182,e96c5e:184,cf1e31:200,1a8749:233,2c8744:188,6a77bda:217,89e0cf7:246,ab60d8:174,b61762:201,2ee580:347,e19e5f:297,73b3b64:178|Ga2;21f7d6:235,48885b:278,3185e3:319,3ccdf7:312,32c086:239,d83c2c:174|Eph2;7d7ab4:250,16c54bc:234,bbb2ad6:193,140fbc:300,5f06a2:268,843a81:227|Php2;16c7f38:354,2f4b9f:313,0966ec:243,fc3a8cb:257|Col2;5c7a19:324,2c6e8a:254,a69ba0:252,56d71e:194|1Th2;483a57:118,0d959d:237,43c5aa:144,fb9338:188,e9933e:219|2Th2;c323d6:158,af00ee:194,3a2667f:185|1Ti2;8eb466:241,7bf82d9:136,52c480:152,70afff:159,6ddeba9:237,2f08aa:249|2Ti2;efdf366:200,cd7a8e:253,5987d8f:167,1d6d03:225|Tit2;37dec9:183,450a3c:152,eb0f7b:160|Phm2;ac3fad:223|Heb2;caaf94:159,b77548:216,f15334:190,c9d97f:194,09e48c:150,9f9762:193,aa74d5:283,3b92233:173,5463da:315,6a33eb:354,66b1bd:471,930358:339,91f219f:291|Jas2;93b8f0:288,d21b22:265,453648:198,83ad5d3:205,a953372:243|1Pe2;d900972:306,66db95:284,73530e:266,ed9be62:221,48343a:171|2Pe2;21d9d1b:253,f12223:290,7c289d:240|1Jo2;d10b4b:126,442a14:378,25d8c1c:299,d33e08f:286,14bf1b:251|2Jo2;1fd2e6:156|3Jo2;07671d:180|Jude2;213140:367|Re2;8c3d05:273,4af788:374,3735999:290,d197a5f:156,743155:192,3def8b0:222,f7b0e2:203,87435c9:158,f0e3566:223,3ab6a14:130,d669fc:245,4a50c9:213,8789bc3:225,9d56732:279,d35930:114,ce1034:251,754672:233,e7ef1f:336,abd9e5:272,87ff8dc:190,49b5ba:326,68a228:261";
-const TRACKS=DATA.split("|").map((row,bi)=>{
-  const [head,list]=row.split(";"); const sym=head.slice(0,-1), dig=+head.slice(-1), m={};
-  list.split(",").forEach((it,i)=>{ const [hv,d]=it.split(":"); const [hash,ver]=hv.split("/"); const c=i+1;
-    m[c]={url:"https://cfp2.jw-cdn.org/a/"+hash+"/"+(ver||"1")+"/o/nwt_"+String(bi+1).padStart(2,"0")+"_"+sym+"_KO_"+String(c).padStart(dig,"0")+".mp3",dur:+d}; });
+function jwUrl(bi, chNum){
+  return "https://wol.jw.org/ko/wol/b/r8/lp-ko/nwtsty/" + (bi+1) + "/" + chNum;
+}
+
+/* jw.org 낭독 파일 표 (권|장: 주소 조각:길이초) */
+var DATA="Ge2;ab3397:375,6e2ba0:276,da17c6:332,be5d1b:316,e8b98e:210,42d38d:255,b0dae4:232,b4e3a7:226,35494f:293,b4ad54:239,a49974:273,ab788ec:230,7a48e0d:198,fca643:279,0a493c:245,df0f218:212,5f93f1:319,f20d2e:460,e4d232:455,3d68f7:251,0a6cfc:371,140401:292,693360:239,288716:895,c426f8:340,8cf7da:416,bf2c43e:636,83c90b0:267,0c3c964:394,420100b:517,e38430:657,43ba84:379,d8964a:242,a886e82:346,4e5c62f:316,977ed6:408,d59ffc:427,00d49d:377,87439b:251,ed1e0b:238,8c842e:615,43fc4c:466,f6d7aa:434,7b419b7d:404,5e9fa2f:365,7c1119b:361,8d09fb:432,2a5cfbe:330,4b1515:415,5bcbb80:331|Ex2;2bcf3b:214,03daff:299,9c10b9:377,405aba3:433,d10d36f:280,8081db50:342,9c7691:316,66a6d84:417,995feb:420,ee9cce:391,b291235:141,dfd6ac:602,db0524c:296,cf87f5:411,50d739:340,c4994d:475,49872c:220,b21548:348,2907d45:321,9082ef:279,3c928aa:383,b905bc:364,68d1d8:407,5febaa:203,45e073:345,f158a44:408,49e648:230,c87c4e:500,8b4609b:570,88c526:422,20cd9f1:186,768b31:475,462a939:322,4b6b21:476,ae01b93:332,bc68d9:401,5114cd:289,b0d75d:338,f49c45:457,3fb423f:335|Le2;e5d0ce9:223,a779a16:208,2da6f6f:200,339611:416,ab842c:304,81776c0:389,4de700:420,637e34:428,4ef65b:276,86d284:309,872dc3:476,853e41:120,3320ab:707,f8d122:639,913562:366,6fc3cd:455,b947f8:225,9ac049:361,5b5388:465,42add3:407,03e837:282,a32d6ae:413,c2f43c:555,420c523:261,7d39097:688,f2a269:577,4bf5c4:391|Nu2;882ca5:468,cbea647:290,175a6d:522,074d59:532,8fa553:421,227ad9:339,ff4321:839,43e510:330,5b2bf0:289,96c41c0:349,b5b48f:473,415f935:188,7ada85:295,b4893d2:544,ef47172:434,88f5e6b:605,bff9982:159,ff60556:505,a7e101c:292,6a35440:343,d3987f:424,0c39068:504,7fa07f9:364,74b6e295:284,55c061:204,ee4f98:614,4e992b:277,85e6fee:350,da31fce:477,b6ce6c:207,8ad2523:505,aff5d2:448,b817f47:404,cfea84:233,0bce3b:382,efce53e:173|De2;88cc67a:562,daa00c2:450,feb9f54:388,b1eba0:657,2fee7e:415,db5494f:293,80188e:428,aa75cbf:260,3297f01:446,7c415e:293,a23129:400,d71103:452,bfefc5:263,252ce3:312,25fbb8b:322,b08364:309,7163d1:280,ec5a1a8:276,d7cd55:266,d138d4:288,fcf42f:327,86a535:383,1ecf82:314,9e2fb8:323,8cf8f9:250,4d4e5f:296,10038e:309,a0cdea:902,78fded:375,54a3f4:313,c7b8c8:481,4681b1:638,5531c5:426,a18ea0:117|Jos2;08809c3:237,3722cc4:305,d9649b:216,4acb1d:257,cf33512:203,18d32c:342,209197:371,df5ddb:404,4ff3fca:314,13dabc:510,56719aa:259,06cc4b:164,5c4231:316,120bdb3:185,a95f88:404,fdc63b0:96,cf4429:264,c8d815:282,de1f51f:356,453033:122,65fb29:369,217269:479,7aea22:235,bfbcbc:445|Jg2;bbc999:403,d5b1de:276,923f68:353,d9f2ed:318,ef3505:408,3fb16a:542,01118d:368,f05908:415,e46ebe:638,260019:205,4761458:492,053ca1:184,ce7a89:313,b470e7e:296,6c5bbf:271,de8b3f:474,e1a24d:165,739efa:395,a34208:418,fcd0bf:558,3af20f:291|Ru2;6649615:324,05babe:350,dad515:248,8bb963:294|1Sa2;55f9676:347,0d83de9:500,2005dc2:271,abd128d:302,261db8:169,a94b65:303,b7e585a:226,d3c4db:239,d25a3d:439,69e278:406,8dbd4d0:221,23c9d1:417,6d6888:314,2f2c0ec:705,5e7aac:509,d6b17a:360,bf3ab0:680,215551:348,9be08a:319,0df7687:543,8008d0b:212,8f57b0:341,d5db13:381,11a048:276,206102:561,0ca9689:361,59b1c4f:161,14f7b1:354,b99cbb:164,d20fd6b:350,e8cdf2:151|2Sa2;b3e605:324,47c5eb:381,133bd4e:487,7c6767:170,ae12c7:277,05a6ed:279,f1c2e2:363,0e98ed:191,e5fd90:197,02ba18:243,8bb50d:341,618c96:418,2af1bd1:497,41f6ab7:467,7172f8:494,4e7019:341,e00fe90:393,05ec35:481,038bc5:617,7abcf0:377,4933a6:321,7d6bd7:485,99657cf:409,11add9:366|1Ki2;11a493:638,df2160:657,77f4775:348,c77238:314,ee4ffa2:225,dd13ebe:368,205f09:582,1eed1a:849,2b3bab:333,2451f8:346,74c9be4:533,582102:418,faf455:435,d86a2a:394,34c66e:356,30e477:381,f416f6b:292,ea785e:623,33b066:328,ba5396c:618,998560:369,7e4b73:662|2Ki2;d6e1c7:279,7943f0:371,967297:338,afb4e5:596,355067:406,9f7ffa:456,abc3f98:323,bd3521:393,368f4b:517,a5542c:509,e05613:290,de7e617:259,6bc2533:344,198df4:347,d9d542:406,51746c:256,fd6ef3a:524,fb4780:455,c2301b:468,66b0e3:303,0ede07:302,e427df:261,7a562cc:542,cf3003:246,37a5d8:337|1Ch2;cfbbc5:359,ca9619:417,69e7b3:188,7c5592:395,36a483:285,6536c1:573,704ffe:374,981234:232,dad5983:419,bdae725:164,be979a:428,5f1703:427,91a7ab:158,766ddc:166,f1d0d9:307,9062f4:385,3e1039:355,095b97:181,4e68d5:251,2cd14e:116,fa7c02:400,c6e929:268,6beeb8:289,afc8e1:250,d19e21:258,32e6a4:331,6fb57c:323,2dc81b:380,325325:454|2Ch2;d0fb8c/2:200,81dac7/3:249,64a008f:172,641864:223,0f8b29:179,d14671:564,0ad001:291,4e0774c:202,5b8c9e:361,01f520/2:246,c1362c:215,92e659:195,3de4dd/2:262,74abd4:195,4008e6f:224,19ea23:188,a6c392:194,1d733c3/2:469,492c53f:165,9437e0:484,fc06063:244,40b00d:183,e7583a:312,324f1a:372,4730ea:387,626131:295,c936a5:93,ae87a4:353,15a90a:434,b071c2:351,868113/2:301,e2d949:410,4fef1c:305,89db14:439,527a174:364,d0997b:300|Ezr2;c2b5b5:139,831a616:354,51448aa:196,a43dca:275,c8e0cd4:207,a1ad2d:279,f1ec43:323,6490ea3:390,9da6ac1:257,ab8f65:400|Ne2;8bd9db:148,bd6242:269,f52127:344,7cd9da:255,9d2b11:260,90de0e:239,96feda2:426,bf1080:276,55835c:569,d38a8f:297,2d04acb:376,238dbf:441,fb6e89:401|Es2;aee95e:281,39390c:320,f019c8:225,38408d/2:204,05942a:195,7d3185f:197,9d38dca:164,8afa00:246,f0e36b:373,61207c:41|Job2;1d842c:304,518a96:209,02ed68:241,e28e47:164,1da5b8:200,1ba02c:244,e03b68b:204,14fc00:159,8b8f174:286,8ec99b:209,dbd74f5:150,6f587f:205,af1a7f:220,ed072b:197,113da3:258,b60d7d:195,2b868a:139,590b24:142,3aeab0:236,07612a:225,55452a:264,4382cb:210,44ac10:143,edab2af:224,e33010:44,52fa891:110,face53:177,81e1a0:209,796eb2:191,2fb805:245,147b06:332,ab6c2e:190,cce3c5:261,259454:297,259edf:135,968e16:234,1111161:204,6035ee:356,1352bc:270,5c0324d:212,002bbf:287,492d07:234|Ps3;91ddb8:63,b49e70:109,6e90908:89,76ffc4:99,7c6b773:149,4eb3b36:106,08f101:165,19e49b:90,688a098:202,12ae81:182,3d079d:72,82f79f:88,fb132b:74,d8fd3e:83,dc3cc0c:59,a3ead5:110,04076c:163,9cc935:465,df9594:148,48e20f:97,6c396b:126,7c28d6:308,1101a4:69,932b52:98,856733c:196,77f1a3c:106,741560:168,761355:115,2979b7:104,512fab:148,6ce637:278,8724020:122,b29250:174,d3e144:186,88cd7c:294,fe053dc:122,d57251:332,112e6a:185,9d8ba7:157,08ef9d:217,006c555:132,4e12800:144,55622e:74,44310a:227,d09fb1:175,dc28e36:106,d3d55e7:89,ffdc87:120,fd56242:167,7d2b330:200,01a8b5:206,e621fc2:97,1107f17:91,e46665:84,63c123:230,b7c2a32:144,8cf5a7:145,a27e1b3:109,d3e3e7:212,ced7058:135,8c4d2f:84,0f983fe:132,7d823a:111,8f6336:95,58ec91:160,c0816e:182,b87eda5:74,a036203:374,3871c1:343,fa3391:68,da1982:261,1e6262:181,ac5576:225,69b44ba:220,659b28:106,209a4d6d:109,dc4242:181,1a3198:574,a4deb5:143,eded7c:179,622d54a:152,88a21e:69,a30cd41:146,c6702b:131,96ee85:116,750207:190,563593b:69,ca017f:184,3788e7:441,c855ede:169,2635ce:136,1e8685:135,08280cf:61,3880d8:196,c64a3c:94,ac399d:126,6cbcb43:107,23214f4:87,904107:97,d459d6a:51,571301:91,fd193f:244,ee10048:185,55cf324:281,e2c9081:320,998df4:372,0ef027f:317,acb71d:128,058530:264,52b63f:77,5a336e:99,b2c684:94,39032e:64,36eeea6:64,f1fea8:145,750bd2e:150,d5ebf5:25,515e0a5:231,0af2106:1427,2db9a8:58,db5f1be:68,07acfa3:75,23216a:47,7033b7:62,c1d5703:54,c49909:57,8624aa:62,a519c7:53,49d68d:61,1ab707f:73,df98ff:38,8c9484:148,e4fe00:39,ad7e0d:29,a440c8:173,b8a80e2:210,d262c4:84,015998f:94,e544cb:222,513445:129,8fabbc:114,5778d3d:93,68b7572:145,e6e0c43:143,7cd1261:182,3e8ceb:96,62bb52:154,be49a0:111,2595c2:75,7a5822:48|Pr2;378287:263,17c50b:157,6d385a:253,7a6bb6e:202,59232d7:166,925e6d:241,232cf1f:170,baf9894:264,73f352:134,0d8430b:267,78cef0:255,f6af0d:230,912e30:210,b5e0e14:294,612bd1:268,65b757:254,b9d7b7:228,332545:183,1adf36:242,658107a:240,0fd8555:247,1be7ee:229,c61f14:262,fce64a:247,2f1244:220,79dd67:214,3aa568d:220,4cee9c:241,2dfee5:217,d05426:284,b47694:216|Ec2;bfe5dc:159,85a163:303,406133:215,73e016:153,83f0e6d:220,866a685:133,038bf3:271,68b2cdd:198,1d22c25:220,6362820:170,91259f9:108,8b635d:158|Ca2;85a643b:176,4b5019:187,f0d665:128,1e01c88:196,1ea398:218,e167a8:159,306f13:153,22ab871:189|Isa2;32daf3:350,a8dcec:226,e12ebde:250,d0b014:78,7de4856:383,e53529b:182,8118dfa:292,8117203:269,27a0df6:281,7287cf:389,ccbd73:200,25e1846:69,8d16d3a:253,02cf4bc:365,fc13d98:116,1c9b2e:187,d13b40a:174,e716b2c:111,d91247:322,4ecb229:86,5629567:207,ec00f4:301,d18d867:234,9be4ae:272,299a3cd:168,7716bb:260,790c5d:173,b6aa8f0a:375,db7d09c:331,68bd856:449,4d4427a:144,88e18d:200,3bf7036:302,1cde05:223,ab05c5:126,24a1a9:272,3d5f637:480,a9cfb1:273,e758913:128,2ee60da:364,aa2bd8b:372,d040f3:298,7c0f4a:340,c31012f:404,a3faf1:364,b77607:174,f42d30:228,8837f2:295,fcf234:411,51bbd55:180,5bcf1c3:343,bdb935b:217,838de8:190,8a5ad4:230,710b2a:179,5cfeb9:160,99ab70:271,3f09a8:230,307a176:292,8c7b52d:311,8d5d805:175,d16fef0a:180,6d21c4b:280,a84e370:170,6aba5f8:386,97f131:406|Jer2;38330f3:220,a3e8db:489,d12e744:350,95aa3f:396,822620b:395,25d6c16:394,ed86cd:402,92e13c8:303,67551d3:350,6e7be2:297,b49b2d8:326,227255e:248,e18f7c6:336,b27a1df:315,abb819f:314,ab05c2:289,1beae17:350,9f410433:273,ae7337:217,7bdc64:244,37b2ae:202,a1ac772:374,08429cd:530,c3363e:141,4a89bf:461,eeb64b:303,bbb773:287,05e5b72:217,cb309f8:423,8bb327:319,01a6ce1:553,0727ce:545,d29d4c:321,2adbbd:305,60c21a:265,81f44c:421,778bf0:248,e9bd3d:367,ebf26f2:207,298dd2e:255,45e37c:222,a0dd662:294,87eafe:163,a8f9a62:460,3dca63:72,eba1cc7:362,48b87f:104,0c1d5e:541,a8b6795:520,d69a30:632,c9b8b8/2:793,86ff33a:381|La2;deaab45:380,fdcfcdd:369,94d5d11:433,48d4808:265,81f9717:167|Eze2;ab1a011:312,8c6d315:127,50222bc:326,bc28bbd:206,fbaaf59:249,bc98c9:208,4e7c9b:341,476f81:266,2d6515:178,4f38265:240,d04c1e:298,36f0a1b:341,ad19a3:315,6a2099:318,d50a1c0:82,cc1811:784,2f9a59:325,8f2d14e:402,dc40f5:152,1612e8:682,73b0b6:393,364d2e3:356,db37f7:579,074107:325,6abf7e6:216,0b2c8f2:283,7afbbc5:378,21d0c1:356,0513f6:282,586076:301,0fd0e91:280,2ae7991:445,5cba3b:451,c4ddb3c:385,f7997e9:178,4aef35f:489,1e4b33e:364,16384b:306,d44541:356,72a3ad:530,280b0d5:275,e42a51:198,e3ac26:332,5dda8f:384,ffc58f:326,70c8b9b:303,5eec173:292,3fadd1/2:379|Da2;a674b1:220,7eac00:619,b027e78:412,01bb7b5:558,3e6f50d:414,4d51288:396,34d0249:411,aab494:357,8f003e7:419,d4aabda:272,976685:599,5fa144:171|Ho2;d9441b7:144,66db62:261,298027:68,89f4cd:220,a18254:169,232a16:113,bc013c:184,d46653:151,2e12431:220,e5f06a:193,24a558:148,0731cf3:140,4b3f2f:175,183d12:115|Joe2;33664f4:213,a94594:388,8f3b9a:230|Am2;e7e340:193,914685:186,570e7d:170,640a50:192,922ff0:276,cb293e:165,4e8c25:215,6d729c:183,15c510:218|Ob2;97060a:292|Jon2;c46489/2:209,b3a734:118,3956eb:114,68a002:153|Mic2;e4a318:194,78c04f:175,2d179c:150,35faf7:199,8bec3b:167,0a68fc:198,620ed9:250|Na2;a37287:190,5dae9d4:160,1dc913:233|Hab2;908adc:195,954962:244,a4b970:242|Zep2;6aa74d:213,dc2d1a:196,fe5feb9:278|Hag2;0e1089:177,b51321:275|Zec2;295096d:252,bb2e8b:134,6c1053:132,0cc944:161,4448a47:127,1fd6abe:151,a698da:142,8aaba97:257,567f089:219,342b9a9:157,5ea305:204,d83d44:176,f1ebac5:120,cc8aeb:245|Mal2;236c1b:260,51eaff:254,957bea:281,0bdb1ed:80|Mt2;c3bd004:234,a5c00059:242,c7b69ad:169,97398ca:243,ae6dac9:534,84a92b7:405,c4d09a:292,514c8e:343,daf3891:382,4a95d84:380,633c5c:292,f55193:483,fb6e46:535,001f85:303,acb679:351,9c3da2:290,d7ca4a:282,1248fcd:328,a927ca:310,c47e3a3:323,c9a4c9:489,3f5b0f:386,766b00:392,6e7edb5:415,9b3c9cb:411,54eb71:742,ff019f:597,bb451f9:191|Mr2;c3d88b:397,f4f541:304,346b862:304,b68c3c:375,d7bc7b:395,6d3933:527,6bfdf2:341,b5c93e:366,58a53e:487,fd0a9a:530,0fcdd11:313,13a44d:475,3fe8fc:352,a67151:721,142d3e:407,0719bf:82|Lu2;53f9dd:698,15f62cb:446,24b861:466,3166c3:456,05598f:427,d3143a3:556,524ec76:558,345c90c:613,d58bc2:647,761b6c:447,bff93b:591,178308d:608,66105d:383,ba16e4:331,2b3069:307,52193b4:355,fe63ad:326,40e461d:442,7cfecd:443,5726ac:444,0bad03:332,d85cb3:676,482408:544,c9b8f53:440|Joh2;a0156a0:514,fbdf1a:255,eb842e:347,105a4d:521,3a5a26:435,fff338:645,819b29b:485,efaa93:544,43f822:441,161749:382,b45350:565,1e60319:492,b56e3ed:404,5a0425:353,08c842:275,59f756:340,00723c7:332,20f247:469,3c373b9:503,f3c04c4:353,269cb62:372|Ac2;d7cbff:277,382a636:421,327879b:274,208a54:359,503c35:426,0183b45:147,ce8161:640,400966:356,676191d:439,d1e8cd3:456,0f001ec:257,9cf3ca:264,ea79ce:545,ff0f58:259,e4dcd3:403,4277909:400,ad07d22:384,5163513:286,bd8c2d2:416,f3bcddc:364,d40eeb6:420,167cee:336,d75975:357,e6264f:259,c95efa:303,d6b59c:367,be8f75:399,5525af:307|Ro2;170b66:349,7f72b48:279,00b98c:304,3db452:255,8c841e:236,3b90e05b:239,39c65a:264,2eea43:411,6e767a:347,f92de1d:224,e85a06a:394,3bad209:219,c9ea8b:186,46c1f3:247,9b55ea:368,49748af:289|1Co2;7260b0:340,c236bf:185,f8bdd0a:251,5f55fe:251,157cd37:157,c9a58b:232,c084db:452,671e570:151,460d3c:298,26a89cf:308,c80462:319,fcf751f:265,63bea4:139,a167d5:388,fc3b5d:542,2e188c1:221|2Co2;4e71470:280,cfe599:182,e96c5e:184,cf1e31:200,1a8749:233,2c8744:188,6a77bda:217,89e0cf7:246,ab60d8:174,b61762:201,2ee580:347,e19e5f:297,73b3b64:178|Ga2;21f7d6:235,48885b:278,3185e3:319,3ccdf7:312,32c086:239,d83c2c:174|Eph2;7d7ab4:250,16c54bc:234,bbb2ad6:193,140fbc:300,5f06a2:268,843a81:227|Php2;16c7f38:354,2f4b9f:313,0966ec:243,fc3a8cb:257|Col2;5c7a19:324,2c6e8a:254,a69ba0:252,56d71e:194|1Th2;483a57:118,0d959d:237,43c5aa:144,fb9338:188,e9933e:219|2Th2;c323d6:158,af00ee:194,3a2667f:185|1Ti2;8eb466:241,7bf82d9:136,52c480:152,70afff:159,6ddeba9:237,2f08aa:249|2Ti2;efdf366:200,cd7a8e:253,5987d8f:167,1d6d03:225|Tit2;37dec9:183,450a3c:152,eb0f7b:160|Phm2;ac3fad:223|Heb2;caaf94:159,b77548:216,f15334:190,c9d97f:194,09e48c:150,9f9762:193,aa74d5:283,3b92233:173,5463da:315,6a33eb:354,66b1bd:471,930358:339,91f219f:291|Jas2;93b8f0:288,d21b22:265,453648:198,83ad5d3:205,a953372:243|1Pe2;d900972:306,66db95:284,73530e:266,ed9be62:221,48343a:171|2Pe2;21d9d1b:253,f12223:290,7c289d:240|1Jo2;d10b4b:126,442a14:378,25d8c1c:299,d33e08f:286,14bf1b:251|2Jo2;1fd2e6:156|3Jo2;07671d:180|Jude2;213140:367|Re2;8c3d05:273,4af788:374,3735999:290,d197a5f:156,743155:192,3def8b0:222,f7b0e2:203,87435c9:158,f0e3566:223,3ab6a14:130,d669fc:245,4a50c9:213,8789bc3:225,9d56732:279,d35930:114,ce1034:251,754672:233,e7ef1f:336,abd9e5:272,87ff8dc:190,49b5ba:326,68a228:261";
+var TRACKS=DATA.split("|").map(function(row,bi){
+  var p=row.split(";"), head=p[0], sym=head.slice(0,-1), dig=+head.slice(-1), m={};
+  p[1].split(",").forEach(function(it,i){
+    var a=it.split(":"), hv=a[0].split("/"), c=i+1;
+    m[c]={url:"https://cfp2.jw-cdn.org/a/"+hv[0]+"/"+(hv[1]||"1")+"/o/nwt_"+String(bi+1).padStart(2,"0")+"_"+sym+"_KO_"+String(c).padStart(dig,"0")+".mp3",dur:+a[1]};
+  });
   return m;
 });
 
-/* ---------- 365일 분할 (낭독 시간이 고르게) ---------- */
-function buildPlan(){
-  const ch=[];
-  BOOKS.forEach((b,bi)=>{ for(let c=1;c<=b[2];c++) ch.push({b:bi,c,w:TRACKS[bi][c].dur}); });
-  const total=ch.reduce((s,x)=>s+x.w,0), avg=total/DAYS;
-  const plan=[]; let i=0, cum=0;
-  for(let d=0;d<DAYS;d++){
-    const day=[]; const target=total*(d+1)/DAYS; const left=DAYS-d-1; let dw=0;
-    if(d===DAYS-1){ while(i<ch.length) day.push(ch[i++]); }
-    else while(i<ch.length-left && (day.length===0 || cum+ch[i].w/2<=target || dw<avg*0.5)){ cum+=ch[i].w; dw+=ch[i].w; day.push(ch[i++]); }
-    plan.push(day);
+/* 전체 장 목록 */
+var ALL_CHAPTERS = [];
+BOOKS.forEach(function(b, bi){
+  for(var ci=0; ci<b.ch; ci++)
+    ALL_CHAPTERS.push({bi:bi, ci:ci, bookName:b.name, chNum:ci+1});
+});
+var TOTAL_CH = ALL_CHAPTERS.length; // 1189
+
+/* 연간 계획 */
+var YEAR = 2026, DAYS = 365;
+var DAY_PLAN = [];
+(function(){
+  var base = Math.floor(TOTAL_CH/DAYS), extra = TOTAL_CH%DAYS, cursor = 0;
+  for(var d=0; d<DAYS; d++){
+    var cnt = base + (d<extra?1:0);
+    DAY_PLAN.push(ALL_CHAPTERS.slice(cursor, cursor+cnt));
+    cursor += cnt;
   }
-  return plan;
-}
-const PLAN=buildPlan();
-const keyOf=x=>(x.b+1)+"-"+x.c;
+})();
 
-function label(day,short){
-  const parts=[]; let s=0;
-  while(s<day.length){
-    let e=s; while(e+1<day.length && day[e+1].b===day[s].b) e++;
-    const b=BOOKS[day[s].b], name=short?b[1]:b[0], unit=short?"":(day[s].b===18?"편":"장");
-    if(b[2]===1) parts.push(name);
-    else if(s===e) parts.push(name+" "+day[s].c+unit);
-    else parts.push(name+" "+day[s].c+"–"+day[e].c+unit);
-    s=e+1;
+/* ════════════════════════════
+   상태
+════════════════════════════ */
+var STORE = "bible2026_ch";
+var done = new Set();
+var isSyncing = false;
+
+function loadLocal(){
+  try { done = new Set(JSON.parse(localStorage.getItem(STORE)||"[]")); }
+  catch(e){ done = new Set(); }
+}
+function saveLocal(){
+  try { localStorage.setItem(STORE, JSON.stringify([...done])); } catch(e){}
+}
+
+function key(bi,ci){ return bi+"_"+ci; }
+
+/* ════════════════════════════
+   날짜
+════════════════════════════ */
+var WD=["일","월","화","수","목","금","토"];
+var MN=["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+var viewDate = (function(){ var t=new Date(); return t.getFullYear()===YEAR?t:new Date(YEAR,0,1); })();
+
+function dayIndex(date){ return Math.round((new Date(date.getFullYear(),date.getMonth(),date.getDate()) - new Date(date.getFullYear(),0,1))/86400000); }
+function formatDate(d){ return d.getFullYear()+"년 "+MN[d.getMonth()]+" "+d.getDate()+"일 ("+WD[d.getDay()]+")"; }
+function shortDate(di){ var d=new Date(YEAR,0,1+di); return (d.getMonth()+1)+"월 "+d.getDate()+"일"; }
+
+function shiftDay(delta){
+  var nd=new Date(viewDate); nd.setDate(nd.getDate()+delta);
+  var min=new Date(YEAR,0,1), max=new Date(YEAR,11,31);
+  if(nd<min||nd>max) return;
+  viewDate=nd; renderHeader(); highlightToday(); playerFollowView();
+}
+function goToday(){
+  var t=new Date(); viewDate=t.getFullYear()===YEAR?t:new Date(YEAR,0,1);
+  renderHeader(); highlightToday(); playerFollowView();
+}
+
+/* ════════════════════════════
+   오늘 말씀
+════════════════════════════ */
+function formatReading(chapters){
+  if(!chapters||!chapters.length) return "—";
+  var groups=[], cur=null;
+  chapters.forEach(function(c){
+    if(cur&&cur.bi===c.bi&&c.ci===cur.endCi+1){ cur.endCi=c.ci; cur.endNum=c.chNum; }
+    else{ cur={bi:c.bi,bookName:c.bookName,startNum:c.chNum,endCi:c.ci,endNum:c.chNum}; groups.push(cur); }
+  });
+  return groups.map(function(g){
+    return g.startNum===g.endNum ? g.bookName+" "+g.startNum+"장" : g.bookName+" "+g.startNum+"~"+g.endNum+"장";
+  }).join("&nbsp;&nbsp;/&nbsp;&nbsp;");
+}
+
+function renderHeader(){
+  var di=dayIndex(viewDate);
+  var chapters=(di>=0&&di<DAYS)?DAY_PLAN[di]:[];
+  document.getElementById("header-date-text").textContent=formatDate(viewDate);
+  document.getElementById("today-reading").innerHTML=formatReading(chapters)+"<em>("+chapters.length+"장)</em>";
+  document.getElementById("day-of-year").textContent="연중 "+(di+1)+"일째";
+}
+
+/* ════════════════════════════
+   UI 업데이트
+════════════════════════════ */
+function updateProgress(){
+  var cnt=done.size, pct=Math.round(cnt/TOTAL_CH*100);
+  document.getElementById("overall-text").textContent=cnt.toLocaleString()+" / "+TOTAL_CH.toLocaleString()+" 장 ("+pct+"%)";
+  document.getElementById("footer-progress").textContent=cnt.toLocaleString()+" / "+TOTAL_CH.toLocaleString()+" 장";
+  document.getElementById("prog-fill").style.width=pct+"%";
+}
+
+function updateCard(bi){
+  var book=BOOKS[bi], card=document.getElementById("card_"+bi);
+  if(!card) return;
+  for(var ci=0; ci<book.ch; ci++){
+    var el=document.getElementById("ch_"+bi+"_"+ci);
+    if(!el) continue;
+    var isDone=done.has(key(bi,ci));
+    el.classList.toggle("done",isDone);
+    if(isDone) el.classList.remove("today-ch");
   }
-  return parts.join(short?", ":" · ");
+  var allDone=[...Array(book.ch).keys()].every(function(ci){ return done.has(key(bi,ci)); });
+  card.classList.toggle("all-done",allDone);
+  updateProgress();
 }
 
-/* ---------- 날짜 ---------- */
-const WD=["일","월","화","수","목","금","토"];
-function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function parse(s){ const p=s.split("-").map(Number); return new Date(p[0],p[1]-1,p[2]); }
-function todayStr(){ return ymd(new Date()); }
-function dayIdx(dateStr){ return Math.round((parse(dateStr)-parse(S.start))/86400000); }
-function dateOf(idx){ const d=parse(S.start); d.setDate(d.getDate()+idx); return d; }
-function nice(idx){ const d=dateOf(idx); return (d.getMonth()+1)+"월 "+d.getDate()+"일 ("+WD[d.getDay()]+")"; }
-
-/* ---------- 진도 저장 ---------- */
-const KEY="bibleAudio365.v2";
-let S={start:"",done:{},pos:null,rate:1};
-try{
-  let r=JSON.parse(localStorage.getItem(KEY)||"null");
-  if(!r){ const old=JSON.parse(localStorage.getItem("bibleAudio365.v1")||"null"); if(old&&old.done){ r={done:old.done,rate:old.rate||1,pos:old.pos||null}; } }
-  if(r&&r.done) S=Object.assign(S,r);
-}catch(e){}
-if(!/^\d{4}-\d{2}-\d{2}$/.test(S.start)){   // 처음 여는 날이 1일차 (이전 진도가 있으면 그만큼 앞당김)
-  const d=new Date(); d.setDate(d.getDate()-Object.keys(S.done).length); S.start=ymd(d);
-}
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
-save();
-function doneCount(){ return Object.keys(S.done).length; }
-function firstUndone(){ for(let d=0;d<DAYS;d++) if(!(d in S.done)) return d; return -1; }
-
-/* ---------- 오프라인 오디오 보관 (IndexedDB) ---------- */
-let db=null; const have=new Set();
-function openDb(){
-  return new Promise((res,rej)=>{
-    let rq; try{ rq=indexedDB.open("bibleAudio365",1); }catch(e){ return rej(e); }
-    rq.onupgradeneeded=()=>rq.result.createObjectStore("audio");
-    rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error);
+function highlightToday(){
+  document.querySelectorAll(".ch.today-ch").forEach(function(el){ el.classList.remove("today-ch"); });
+  document.querySelectorAll(".book-card.today-card").forEach(function(el){ el.classList.remove("today-card"); });
+  var di=dayIndex(viewDate);
+  if(di<0||di>=DAYS) return;
+  var todaySet=new Set();
+  DAY_PLAN[di].forEach(function(c){
+    var el=document.getElementById("ch_"+c.bi+"_"+c.ci);
+    if(el&&!el.classList.contains("done")) el.classList.add("today-ch");
+    todaySet.add(c.bi);
+  });
+  todaySet.forEach(function(bi){
+    var card=document.getElementById("card_"+bi);
+    if(card) card.classList.add("today-card");
   });
 }
-function tx(mode,fn){ return new Promise((res,rej)=>{ const t=db.transaction("audio",mode); const rq=fn(t.objectStore("audio")); t.oncomplete=()=>res(rq&&rq.result); t.onerror=t.onabort=()=>rej(t.error); }); }
-const idbGet=k=>tx("readonly",s=>s.get(k));
-const idbPut=(k,v)=>tx("readwrite",s=>s.put(v,k));
-async function initDb(){
-  try{ db=await openDb(); (await tx("readonly",s=>s.getAllKeys())).forEach(k=>have.add(k)); }catch(e){ db=null; }
-  renderOff();
+
+/* ════════════════════════════
+   체크 토글
+════════════════════════════ */
+function toggleCh(bi,ci){
+  var k=key(bi,ci);
+  if(done.has(k)) done.delete(k); else done.add(k);
+  saveLocal(); updateCard(bi); syncToFirebase(); drawChips();
+}
+function markDone(bi,ci){
+  var k=key(bi,ci); if(done.has(k)) return;
+  done.add(k); saveLocal(); updateCard(bi); syncToFirebase();
+}
+function toggleBook(bi){
+  var allDone=[...Array(BOOKS[bi].ch).keys()].every(function(ci){ return done.has(key(bi,ci)); });
+  for(var ci=0; ci<BOOKS[bi].ch; ci++){
+    if(allDone) done.delete(key(bi,ci)); else done.add(key(bi,ci));
+  }
+  saveLocal(); updateCard(bi); syncToFirebase(); drawChips();
+}
+function resetAll(){
+  if(!confirm("모든 체크를 초기화할까요?")) return;
+  done.clear(); saveLocal();
+  BOOKS.forEach(function(_,bi){ updateCard(bi); });
+  syncToFirebase(); drawChips();
 }
 
-/* ---------- 플레이어 ---------- */
-const $=id=>document.getElementById(id);
-const au=$("au");
-let curDay=-1, doneFor=-1, ci=0, wantPlay=false, seeking=false, lastSave=0, loadTok=0, objUrl=null;
+/* ════════════════════════════
+   DOM 구성
+════════════════════════════ */
+function build(){
+  loadLocal();
+  var container=document.getElementById("books-container");
+  var grid=document.createElement("div");
+  grid.className="books-grid";
+  container.appendChild(grid);
 
-function fmt(s){ if(!isFinite(s)||s<0) s=0; s=Math.floor(s); const m=Math.floor(s/60), h=Math.floor(m/60);
+  BOOKS.forEach(function(book, bi){
+    var card=document.createElement("div");
+    card.className="book-card"; card.id="card_"+bi;
+
+    var tr=document.createElement("div");
+    tr.className="book-title-row";
+    tr.innerHTML='<span class="book-name">'+book.name+'</span><span class="book-chapters-count">'+book.ch+'장</span><span class="book-done-mark">완독</span>';
+    tr.onclick=function(){ toggleBook(bi); };
+    card.appendChild(tr);
+
+    var cw=document.createElement("div");
+    cw.className="chapters-wrap";
+    for(var ci=0; ci<book.ch; ci++){
+      (function(ci){
+        var ch=document.createElement("div");
+        ch.className="ch"+(done.has(key(bi,ci))?" done":"");
+        ch.id="ch_"+bi+"_"+ci;
+        ch.setAttribute("data-n",ci+1);
+        ch.title=book.name+" "+(ci+1)+"장";
+
+        var pressTimer=null, didLong=false;
+        ch.addEventListener("pointerdown",function(){ didLong=false; pressTimer=setTimeout(function(){ didLong=true; openReader(bi,ci+1); },500); });
+        ch.addEventListener("pointerup",function(){ clearTimeout(pressTimer); });
+        ch.addEventListener("pointerleave",function(){ clearTimeout(pressTimer); });
+        ch.addEventListener("click",function(e){ e.stopPropagation(); if(!didLong) toggleCh(bi,ci); });
+        ch.addEventListener("dblclick",function(e){ e.stopPropagation(); openReader(bi,ci+1); });
+        cw.appendChild(ch);
+      })(ci);
+    }
+    card.appendChild(cw);
+    grid.appendChild(card);
+  });
+
+  updateProgress();
+  BOOKS.forEach(function(_,bi){
+    var allDone=[...Array(BOOKS[bi].ch).keys()].every(function(ci){ return done.has(key(bi,ci)); });
+    document.getElementById("card_"+bi).classList.toggle("all-done",allDone);
+  });
+  renderHeader();
+  highlightToday();
+
+  /* 자정 자동 갱신 */
+  (function scheduleRefresh(){
+    var now=new Date();
+    var msToMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1)-now;
+    setTimeout(function(){ goToday(); scheduleRefresh(); },msToMidnight+1000);
+  })();
+}
+
+/* ════════════════════════════
+   본문 창 (jw.org 연구용 성경)
+   — jw.org는 다른 사이트 안에 끼워 보여 주는 것을 막고 있어 별도 창으로 엽니다.
+     한 번 연 창은 낭독이 다음 장으로 넘어갈 때 함께 넘어갑니다.
+════════════════════════════ */
+var readerWin=null;
+function openReader(bi,chNum){
+  var url=jwUrl(bi,chNum);
+  if(readerWin && !readerWin.closed){
+    try{ readerWin.location.href=url; readerWin.focus(); return; }catch(e){}
+  }
+  var wide=window.innerWidth>=1000 && !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  var feat=null;
+  if(wide){
+    var w=Math.round(screen.availWidth/2), h=screen.availHeight;
+    feat="popup=yes,width="+w+",height="+h+",left="+(screen.availWidth-w)+",top=0";
+  }
+  readerWin = feat ? window.open(url,"bibleReader",feat) : window.open(url,"bibleReader");
+  if(!readerWin) showMsg("본문 창이 차단되었습니다. 브라우저 주소창의 팝업 차단 표시에서 이 사이트를 허용해 주세요.");
+}
+function followReader(){
+  if(!document.getElementById("follow").checked) return;
+  if(!readerWin || readerWin.closed || pDay<0) return;
+  var x=DAY_PLAN[pDay][pi];
+  try{ readerWin.location.href=jwUrl(x.bi,x.chNum); }catch(e){}
+}
+
+/* ════════════════════════════
+   낭독 플레이어
+════════════════════════════ */
+var $=function(id){ return document.getElementById(id); };
+var au=$("au");
+var pDay=-1, pi=0, wantPlay=false, seeking=false, lastSave=0, loadTok=0, objUrl=null, pre=null, advanced=false, resumeMsg=false;
+var PKEY="bible2026_player";
+var PS={day:-1,pi:0,t:0,rate:1};
+try{ var _r=JSON.parse(localStorage.getItem(PKEY)||"null"); if(_r) PS=Object.assign(PS,_r); }catch(e){}
+function savePS(){ try{ localStorage.setItem(PKEY,JSON.stringify(PS)); }catch(e){} }
+function savePos(){ if(pDay<0) return; PS.day=pDay; PS.pi=pi; PS.t=Math.floor(au.currentTime||0); savePS(); }
+
+function fmt(s){ if(!isFinite(s)||s<0) s=0; s=Math.floor(s); var m=Math.floor(s/60), h=Math.floor(m/60);
   return (h?h+":"+String(m%60).padStart(2,"0"):m)+":"+String(s%60).padStart(2,"0"); }
-function showMsg(t){ const m=$("msg"); m.textContent=t||""; m.classList.toggle("show",!!t); }
-function chName(x){ const b=BOOKS[x.b]; return b[2]===1?b[0]:b[0]+" "+x.c+(x.b===18?"편":"장"); }
+function showMsg(t){ var m=$("msg"); m.textContent=t||""; m.classList.toggle("show",!!t); }
+function chName(x){ return BOOKS[x.bi].ch===1 ? x.bookName : x.bookName+" "+x.chNum+(x.bi===18?"편":"장"); }
+function okey(x){ return (x.bi+1)+"-"+x.chNum; }   // 오프라인 저장 열쇠
 
-function renderTop(){
-  $("hCount").textContent=doneCount()+" / "+DAYS+"일";
-  const t=Math.min(dayIdx(todayStr()),DAYS); let n=0, first=-1;
-  for(let d=0;d<t;d++) if(!(d in S.done)){ n++; if(first<0) first=d; }
-  const b=$("missed");
-  if(n>0 && first!==curDay){ b.hidden=false; b.innerHTML="밀린 분량 <b>"+n+"일</b> · "+nice(first)+" 분량부터 듣기 ›"; b.onclick=()=>openDay(first,true); }
-  else b.hidden=true;
-}
-function drawMeta(){
-  const day=PLAN[curDay]; const tot=day.reduce((s,x)=>s+x.w,0); const off=day.every(x=>have.has(keyOf(x)));
-  $("pMeta").textContent=day.length+(day[0].b===18&&day[day.length-1].b===18?"편":"장")+" · 약 "+Math.round(tot/60)+"분 · "+(off?"오프라인 저장됨":"인터넷으로 재생");
-  $("pEyebrow").textContent=nice(curDay)+" · "+(curDay+1)+"일차"+(curDay in S.done?" · 들음":"");
-  $("bMark").textContent=(curDay in S.done)?"들음 표시 취소":"들음으로 표시";
-  $("pBar").style.width=(doneCount()/DAYS*100)+"%";
-}
-
-function openDay(d,autoplay){
-  if(d<0||d>=DAYS) return;
-  showTab("today");
-  curDay=d; doneFor=-1; ci=0; wantPlay=!!autoplay;
-  au.pause();
-  $("pRange").textContent=label(PLAN[d]);
-  let startAt=0;
-  if(S.pos && S.pos.day===d && S.pos.ci<PLAN[d].length){ ci=S.pos.ci; startAt=S.pos.t||0; }
-  showMsg(""); drawMeta();
-  $("player").hidden=false; $("doneCard").hidden=true;
-  loadChapter(ci,startAt); renderTop(); renderCal();
-}
-
-function showDone(d){
-  curDay=-1; doneFor=d; au.pause(); wantPlay=false; setPlayIcon();
-  const isToday=d===dayIdx(todayStr());
-  $("dTitle").textContent=isToday?"오늘 낭독을 마쳤습니다":nice(d)+" 분량을 마쳤습니다";
-  if(d+1<DAYS){ $("dSub").textContent=(isToday?"내일은 ":"다음은 ")+nice(d+1)+" · "+label(PLAN[d+1]); $("bAhead").hidden=false; }
-  else { $("dSub").textContent="창세기부터 계시록까지 모두 들었습니다."; $("bAhead").hidden=true; }
-  $("player").hidden=true; $("doneCard").hidden=false;
-  renderTop(); renderCal();
-}
+function setPlayIcon(){ var p=!au.paused; $("bPlay").textContent=p?"❚❚":"▶"; $("bPlay").setAttribute("aria-label",p?"일시정지":"낭독 재생"); }
 
 function drawChips(){
-  const day=PLAN[curDay]; const box=$("pChips"); box.innerHTML="";
-  day.forEach((x,i)=>{
-    const b=document.createElement("button"); const bk=BOOKS[x.b];
-    b.className="chip"+(i===ci?" on":"")+(i<ci?" fin":"");
-    b.textContent=bk[2]===1?bk[1]:bk[1]+" "+x.c;
-    b.onclick=()=>{ wantPlay=true; loadChapter(i,0); };
+  var box=$("pChips"); if(!box||pDay<0) return; box.innerHTML="";
+  DAY_PLAN[pDay].forEach(function(x,i){
+    var b=document.createElement("button");
+    b.className="chip"+(i===pi?" on":"")+(done.has(key(x.bi,x.ci))&&i!==pi?" fin":"");
+    b.textContent=BOOKS[x.bi].ch===1?x.bookName:x.bookName+" "+x.chNum;
+    b.onclick=function(){ wantPlay=true; loadChapter(i,0); };
     box.appendChild(b);
   });
+  document.querySelectorAll(".ch.playing").forEach(function(el){ el.classList.remove("playing"); });
+  var cur=DAY_PLAN[pDay][pi]; var el=cur&&document.getElementById("ch_"+cur.bi+"_"+cur.ci); if(el) el.classList.add("playing");
+}
+function drawSub(){
+  if(pDay<0) return;
+  var day=DAY_PLAN[pDay], tot=0, off=true;
+  day.forEach(function(x){ tot+=TRACKS[x.bi][x.chNum].dur; if(!have.has(okey(x))) off=false; });
+  $("pSub").textContent=shortDate(pDay)+" 분량 · "+day.length+"장 · 약 "+Math.round(tot/60)+"분 · "+(off?"오프라인 저장됨":"인터넷으로 재생");
+}
+
+function openPlayerDay(di,autoplay){
+  if(di<0||di>=DAYS) return;
+  pDay=di; pi=0; wantPlay=!!autoplay;
+  au.pause();
+  var startAt=0;
+  if(PS.day===di && PS.pi<DAY_PLAN[di].length){ pi=PS.pi; startAt=PS.t||0; }
+  showMsg(""); drawSub(); loadChapter(pi,startAt);
+}
+// 날짜를 옮기면, 재생 중이 아닐 때 그 날 분량으로 플레이어도 바뀜
+function playerFollowView(){
+  var di=dayIndex(viewDate);
+  if(di===pDay) return;
+  if(!au.paused) return;
+  openPlayerDay(di,false);
 }
 
 async function loadChapter(i,startAt){
-  const day=PLAN[curDay]; if(i<0||i>=day.length) return;
-  ci=i; drawChips();
-  const x=day[i], t=TRACKS[x.b][x.c], tok=++loadTok;
+  var day=DAY_PLAN[pDay]; if(i<0||i>=day.length) return;
+  pi=i; drawChips();
+  var x=day[i], t=TRACKS[x.bi][x.chNum], tok=++loadTok, k=okey(x);
   $("pNow").textContent=chName(x);
   $("tDur").textContent=fmt(t.dur); $("tCur").textContent=fmt(startAt||0); $("seek").value=0;
-  let src=t.url; const k=keyOf(x);
-  if(pre && pre.key===k){ src=pre.url; useObj(pre.url); pre=null; }          // 미리 준비해 둔 다음 장 (기다림 없이 바로 전환)
+  var src=t.url;
+  if(pre && pre.key===k){ src=pre.url; useObj(pre.url); pre=null; }
   else if(db && have.has(k)){
-    try{ const blob=await idbGet(k); if(tok!==loadTok) return;
+    try{ var blob=await idbGet(k); if(tok!==loadTok) return;
       if(blob){ src=URL.createObjectURL(blob); useObj(src); } }catch(e){}
   }
   advanced=false; resumeMsg=false;
-  au.src=src; au.playbackRate=S.rate;
-  if(startAt>1) au.addEventListener("loadedmetadata",()=>{ try{ au.currentTime=Math.min(startAt,(au.duration||startAt)-1); }catch(e){} },{once:true});
+  au.src=src; au.playbackRate=PS.rate||1;
+  if(startAt>1) au.addEventListener("loadedmetadata",function(){ try{ au.currentTime=Math.min(startAt,(au.duration||startAt)-1); }catch(e){} },{once:true});
   if(wantPlay) tryPlay();
-  setMedia(); prepNext();
+  setMedia(); prepNext(); followReader();
 }
 function useObj(u){ if(objUrl && objUrl!==u) URL.revokeObjectURL(objUrl); objUrl=u; }
 function tryPlay(){
-  const p=au.play(); if(!p||!p.catch) return;
-  p.catch(e=>{
-    if(e && e.name==="AbortError") return;                 // 다른 장을 불러오느라 중단된 것: 무시
+  var p=au.play(); if(!p||!p.catch) return;
+  p.catch(function(e){
+    if(e && e.name==="AbortError") return;
     wantPlay=false; setPlayIcon();
-    if(curDay>=0){ resumeMsg=true; showMsg("다음 장 재생이 멈췄습니다 (화면이 꺼져 있으면 기기가 막을 수 있습니다). ▶ 를 누르면 "+chName(PLAN[curDay][ci])+"부터 이어집니다."); }
+    if(pDay>=0){ resumeMsg=true; showMsg("다음 장 재생이 멈췄습니다 (화면이 꺼져 있으면 기기가 막을 수 있습니다). ▶ 를 누르면 "+chName(DAY_PLAN[pDay][pi])+"부터 이어집니다."); }
   });
 }
-// 오프라인 저장된 다음 장을 미리 꺼내 두기
-let pre=null;
 async function prepNext(){
-  if(curDay<0||!db) return; const day=PLAN[curDay], nx=day[ci+1]; if(!nx) return;
-  const k=keyOf(nx); if(!have.has(k) || (pre&&pre.key===k)) return;
-  try{ const blob=await idbGet(k); if(!blob||curDay<0||PLAN[curDay][ci+1]!==nx) return;
+  if(pDay<0||!db) return; var nx=DAY_PLAN[pDay][pi+1]; if(!nx) return;
+  var k=okey(nx); if(!have.has(k) || (pre&&pre.key===k)) return;
+  try{ var blob=await idbGet(k); if(!blob||pDay<0||DAY_PLAN[pDay][pi+1]!==nx) return;
     if(pre) URL.revokeObjectURL(pre.url); pre={key:k,url:URL.createObjectURL(blob)}; }catch(e){}
 }
-// 장이 끝났을 때 다음 장으로 (한 장에 한 번만)
-let advanced=false, resumeMsg=false;
+// 장을 끝까지 들으면: 차트에 체크 → 다음 장 (한 장에 한 번만)
 function advance(){
-  if(curDay<0||advanced) return; advanced=true;
-  if(ci+1<PLAN[curDay].length){ wantPlay=true; loadChapter(ci+1,0); savePos(); }
-  else { const d=curDay; if(!(d in S.done)) S.done[d]=todayStr(); S.pos=null; save(); showDone(d); }
+  if(pDay<0||advanced) return; advanced=true;
+  var x=DAY_PLAN[pDay][pi]; markDone(x.bi,x.ci);
+  if(pi+1<DAY_PLAN[pDay].length){ wantPlay=true; loadChapter(pi+1,0); savePos(); }
+  else {
+    wantPlay=false; setPlayIcon(); PS.day=-1; savePS(); drawChips();
+    var nd=pDay+1;
+    showMsg(shortDate(pDay)+" 분량을 다 들었습니다."+(nd<DAYS?" 다음 분량: "+shortDate(nd)+" "+formatReading(DAY_PLAN[nd]).replace(/&nbsp;/g," "):""));
+  }
 }
-
-function setPlayIcon(){ const p=!au.paused; $("bPlay").textContent=p?"❚❚":"▶"; $("bPlay").setAttribute("aria-label",p?"일시정지":"재생"); }
 function setMedia(){
-  if(!("mediaSession" in navigator)||curDay<0) return; const x=PLAN[curDay][ci];
+  if(!("mediaSession" in navigator)||pDay<0) return; var x=DAY_PLAN[pDay][pi];
   try{
-    navigator.mediaSession.metadata=new MediaMetadata({title:chName(x),artist:"성경 낭독 365 · "+nice(curDay),album:"신세계역 성경"});
-    navigator.mediaSession.setActionHandler("play",()=>au.play());
-    navigator.mediaSession.setActionHandler("pause",()=>au.pause());
-    navigator.mediaSession.setActionHandler("previoustrack",()=>$("bPrev").click());
-    navigator.mediaSession.setActionHandler("nexttrack",()=>$("bNext").click());
-    navigator.mediaSession.setActionHandler("seekbackward",()=>{au.currentTime=Math.max(0,au.currentTime-10)});
-    navigator.mediaSession.setActionHandler("seekforward",()=>{au.currentTime=au.currentTime+10});
+    navigator.mediaSession.metadata=new MediaMetadata({title:chName(x),artist:"성경 낭독 · "+shortDate(pDay),album:"신세계역 성경"});
+    navigator.mediaSession.setActionHandler("play",function(){ au.play(); });
+    navigator.mediaSession.setActionHandler("pause",function(){ au.pause(); });
+    navigator.mediaSession.setActionHandler("previoustrack",function(){ $("bPrev").click(); });
+    navigator.mediaSession.setActionHandler("nexttrack",function(){ $("bNext").click(); });
+    navigator.mediaSession.setActionHandler("seekbackward",function(){ au.currentTime=Math.max(0,au.currentTime-10); });
+    navigator.mediaSession.setActionHandler("seekforward",function(){ au.currentTime=au.currentTime+10; });
   }catch(e){}
 }
-function savePos(){ if(curDay<0) return; S.pos={day:curDay,ci,t:Math.floor(au.currentTime||0)}; save(); }
+function nearEnd(){ return au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.6; }
 
-au.addEventListener("play",()=>{ wantPlay=true; resumeMsg=false; setPlayIcon(); showMsg(""); try{ navigator.mediaSession.playbackState="playing"; }catch(e){} });
-au.addEventListener("pause",()=>{
+au.addEventListener("play",function(){ wantPlay=true; resumeMsg=false; setPlayIcon(); showMsg(""); try{ navigator.mediaSession.playbackState="playing"; }catch(e){} });
+au.addEventListener("pause",function(){
   setPlayIcon(); savePos();
-  // 일부 기기는 끝에서 'ended' 없이 멈추기만 함 → 잠시 뒤에도 끝 지점이면 다음 장으로
-  if(wantPlay && nearEnd()){ const tok=loadTok; setTimeout(()=>{ if(tok===loadTok && au.paused && nearEnd()) advance(); },1200); }
+  if(wantPlay && nearEnd()){ var tok=loadTok; setTimeout(function(){ if(tok===loadTok && au.paused && nearEnd()) advance(); },1200); }
 });
-au.addEventListener("timeupdate",()=>{
+au.addEventListener("timeupdate",function(){
   if(!seeking && au.duration){ $("seek").value=Math.round(au.currentTime/au.duration*1000); }
   $("tCur").textContent=fmt(au.currentTime); if(au.duration) $("tDur").textContent=fmt(au.duration);
-  const n=Date.now(); if(n-lastSave>5000){ lastSave=n; savePos(); }
-  if(wantPlay && au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.05){ const tok=loadTok; setTimeout(()=>{ if(tok===loadTok && nearEnd() && !advanced) advance(); },1500); }
+  var n=Date.now(); if(n-lastSave>5000){ lastSave=n; savePos(); }
+  if(wantPlay && au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.05){ var tok=loadTok; setTimeout(function(){ if(tok===loadTok && nearEnd() && !advanced) advance(); },1500); }
 });
 au.addEventListener("ended",advance);
-function nearEnd(){ return au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.6; }
-au.addEventListener("error",()=>{
-  if(!au.getAttribute("src")||curDay<0) return; wantPlay=false; setPlayIcon();
-  showMsg(have.has(keyOf(PLAN[curDay][ci]))?"저장된 오디오를 재생하지 못했습니다. ▶ 를 다시 눌러 주세요.":"이 장은 오프라인에 저장되어 있지 않아 인터넷이 필요합니다. 연결을 확인한 뒤 ▶ 를 다시 눌러 주세요.");
+au.addEventListener("error",function(){
+  if(!au.getAttribute("src")||pDay<0) return; wantPlay=false; setPlayIcon();
+  showMsg(have.has(okey(DAY_PLAN[pDay][pi]))?"저장된 오디오를 재생하지 못했습니다. ▶ 를 다시 눌러 주세요.":"이 장은 오프라인에 저장되어 있지 않아 인터넷이 필요합니다. 연결을 확인한 뒤 ▶ 를 다시 눌러 주세요.");
 });
 
-$("bPlay").onclick=()=>{
-  if(curDay<0) return;
-  if(!au.getAttribute("src")||au.error){ wantPlay=true; loadChapter(ci,au.error?(au.currentTime||0):0); return; }
-  if(au.paused){ wantPlay=true; au.play().catch(e=>{ if(!e||e.name!=="AbortError") showMsg("재생을 시작하지 못했습니다. 다시 눌러 주세요."); }); } else { wantPlay=false; au.pause(); }
+$("bPlay").onclick=function(){
+  if(pDay<0){ openPlayerDay(dayIndex(viewDate),true); return; }
+  if(!au.getAttribute("src")||au.error){ wantPlay=true; loadChapter(pi,au.error?(au.currentTime||0):0); return; }
+  if(au.paused){ wantPlay=true; au.play().catch(function(e){ if(!e||e.name!=="AbortError") showMsg("재생을 시작하지 못했습니다. 다시 눌러 주세요."); }); }
+  else { wantPlay=false; au.pause(); }
 };
-$("bBack").onclick=()=>{ au.currentTime=Math.max(0,au.currentTime-10); };
-$("bFwd").onclick=()=>{ if(au.duration) au.currentTime=Math.min(au.duration-0.5,au.currentTime+10); };
-$("bPrev").onclick=()=>{ if(au.currentTime>3||ci===0) au.currentTime=0; else loadChapter(ci-1,0); };
-$("bNext").onclick=()=>{ if(curDay>=0 && ci+1<PLAN[curDay].length) loadChapter(ci+1,0); };
-$("seek").addEventListener("input",()=>{ seeking=true; if(au.duration) $("tCur").textContent=fmt($("seek").value/1000*au.duration); });
-$("seek").addEventListener("change",()=>{ if(au.duration) au.currentTime=$("seek").value/1000*au.duration; seeking=false; });
-$("rate").value=String(S.rate); if(!$("rate").value) $("rate").value="1";
-$("rate").onchange=()=>{ S.rate=parseFloat($("rate").value)||1; au.playbackRate=S.rate; save(); };
-$("bMark").onclick=()=>{ if(curDay<0) return; if(curDay in S.done) delete S.done[curDay]; else S.done[curDay]=todayStr(); save(); drawMeta(); renderTop(); renderCal(); };
-$("bAhead").onclick=()=>{ if(doneFor>=0) openDay(doneFor+1,true); };
-$("bAgain").onclick=()=>{ if(doneFor>=0) openDay(doneFor,true); };
+$("bRead").onclick=function(){ if(pDay<0) return; var x=DAY_PLAN[pDay][pi]; openReader(x.bi,x.chNum); };
+$("bBack").onclick=function(){ au.currentTime=Math.max(0,au.currentTime-10); };
+$("bFwd").onclick=function(){ if(au.duration) au.currentTime=Math.min(au.duration-0.5,au.currentTime+10); };
+$("bPrev").onclick=function(){ if(au.currentTime>3||pi===0) au.currentTime=0; else loadChapter(pi-1,0); };
+$("bNext").onclick=function(){ if(pDay>=0 && pi+1<DAY_PLAN[pDay].length) loadChapter(pi+1,0); };
+$("seek").addEventListener("input",function(){ seeking=true; if(au.duration) $("tCur").textContent=fmt($("seek").value/1000*au.duration); });
+$("seek").addEventListener("change",function(){ if(au.duration) au.currentTime=$("seek").value/1000*au.duration; seeking=false; });
+$("rate").value=String(PS.rate||1); if(!$("rate").value) $("rate").value="1";
+$("rate").onchange=function(){ PS.rate=parseFloat($("rate").value)||1; au.playbackRate=PS.rate; savePS(); };
 window.addEventListener("pagehide",savePos);
+document.addEventListener("visibilitychange",function(){ if(!document.hidden && resumeMsg && au.paused && pDay>=0){ wantPlay=true; tryPlay(); } });
 
-/* ---------- 달력 ---------- */
-let calY, calM;
-function renderCal(){
-  const box=$("cal"); if(!box) return;
-  $("calTitle").textContent=calY+"년 "+(calM+1)+"월";
-  box.innerHTML="";
-  WD.forEach(w=>{ const e=document.createElement("div"); e.className="wd"; e.textContent=w; box.appendChild(e); });
-  const first=new Date(calY,calM,1), n=new Date(calY,calM+1,0).getDate(), tStr=todayStr();
-  for(let i=0;i<first.getDay();i++) box.appendChild(document.createElement("div"));
-  for(let dd=1;dd<=n;dd++){
-    const ds=ymd(new Date(calY,calM,dd)), idx=dayIdx(ds), inPlan=idx>=0&&idx<DAYS;
-    const c=document.createElement(inPlan?"button":"div");
-    c.className="cell"+(inPlan?"":" none")+(inPlan&&(idx in S.done)?" ok":"")+(ds===tStr?" today":"")+(inPlan&&idx===curDay?" sel":"");
-    const d=document.createElement("span"); d.className="d"; d.textContent=dd; c.appendChild(d);
-    if(inPlan){
-      const l=document.createElement("span"); l.className="l"; l.textContent=label(PLAN[idx],true); c.appendChild(l);
-      if(PLAN[idx].every(x=>have.has(keyOf(x)))){ const o=document.createElement("span"); o.className="off"; c.appendChild(o); }
-      c.setAttribute("aria-label",(calM+1)+"월 "+dd+"일 "+label(PLAN[idx])+" 재생");
-      c.onclick=()=>openDay(idx,true);
-    }
-    box.appendChild(c);
-  }
-  $("startDate").value=S.start;
+/* ════════════════════════════
+   오프라인 오디오 (IndexedDB)
+════════════════════════════ */
+var db=null, have=new Set();
+function openDb(){
+  return new Promise(function(res,rej){
+    var rq; try{ rq=indexedDB.open("bibleAudio365",1); }catch(e){ return rej(e); }
+    rq.onupgradeneeded=function(){ rq.result.createObjectStore("audio"); };
+    rq.onsuccess=function(){ res(rq.result); }; rq.onerror=function(){ rej(rq.error); };
+  });
 }
-function calTo(d){ calY=d.getFullYear(); calM=d.getMonth(); }
-$("calPrev").onclick=()=>{ calM--; if(calM<0){calM=11;calY--;} renderCal(); };
-$("calNext").onclick=()=>{ calM++; if(calM>11){calM=0;calY++;} renderCal(); };
-$("bToday").onclick=()=>{ calTo(new Date()); renderCal(); };
-$("startDate").onchange=()=>{ const v=$("startDate").value; if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return; S.start=v; S.pos=null; save(); boot(false); calTo(parse(v)); renderCal(); };
-$("bReset").onclick=()=>{ $("confirmBox").hidden=false; };
-$("bResetNo").onclick=()=>{ $("confirmBox").hidden=true; };
-$("bResetYes").onclick=()=>{ S.done={}; S.pos=null; save(); $("confirmBox").hidden=true; boot(false); renderCal(); };
-
-/* ---------- 오프라인 가져오기 ---------- */
-function offMsg(t){ const m=$("offMsg"); m.textContent=t||""; m.classList.toggle("show",!!t); }
+function tx(mode,fn){ return new Promise(function(res,rej){ var t=db.transaction("audio",mode); var rq=fn(t.objectStore("audio")); t.oncomplete=function(){ res(rq&&rq.result); }; t.onerror=t.onabort=function(){ rej(t.error); }; }); }
+function idbGet(k){ return tx("readonly",function(s){ return s.get(k); }); }
+function idbPut(k,v){ return tx("readwrite",function(s){ return s.put(v,k); }); }
+async function initDb(){
+  try{ db=await openDb(); (await tx("readonly",function(s){ return s.getAllKeys(); })).forEach(function(k){ have.add(k); }); }catch(e){ db=null; }
+  renderOff();
+}
+function offMsg(t){ var m=$("offMsg"); m.textContent=t||""; m.classList.toggle("show",!!t); }
 function renderOff(){
-  $("offStat").textContent=have.size.toLocaleString()+" / 1,189장 저장됨";
-  if(!db){ $("offSub").textContent="이 브라우저에서는 오프라인 저장을 쓸 수 없습니다. (사생활 보호 모드이거나 저장이 차단됨)"; return; }
-  if(navigator.storage&&navigator.storage.estimate) navigator.storage.estimate().then(e=>{
-    if(have.size) $("offSub").textContent="사용 중 약 "+(e.usage/1e9).toFixed(2)+"GB · 저장된 장은 인터넷 없이 재생되고, 나머지는 jw.org에서 바로 재생됩니다.";
-  }).catch(()=>{});
+  $("offStat").textContent=db ? have.size.toLocaleString()+" / 1,189장 저장됨" : "이 브라우저에서는 사용할 수 없음";
+  drawSub();
 }
-let importing=false;
+var importing=false;
 async function importFiles(fileList){
   if(importing||!db) return;
-  const items=[]; let other=0;
-  for(const f of fileList){
-    const m=f.name.match(/nwt_(\d{2})_[^_]+_[A-Za-z]+_(\d{2,3})\.mp3$/i);
-    const b=m?+m[1]:0, c=m?+m[2]:0;
-    if(m && TRACKS[b-1] && TRACKS[b-1][c]) items.push({f,key:b+"-"+c}); else other++;
+  var items=[];
+  for(var f of fileList){
+    var m=f.name.match(/nwt_(\d{2})_[^_]+_[A-Za-z]+_(\d{2,3})\.mp3$/i);
+    var b=m?+m[1]:0, c=m?+m[2]:0;
+    if(m && TRACKS[b-1] && TRACKS[b-1][c]) items.push({f:f,key:b+"-"+c});
   }
   if(!items.length){ offMsg("성경 낭독 파일(nwt_01_Ge_KO_01.mp3 형식)을 찾지 못했습니다."); return; }
   importing=true;
   try{ if(navigator.storage&&navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
-  let ok=0, fail=0;
-  for(const it of items){
-    try{ await idbPut(it.key,it.f); have.add(it.key); ok++; }catch(e){ fail++; if(e&&e.name==="QuotaExceededError"){ offMsg("저장 공간이 부족해서 "+ok+"개까지만 가져왔습니다."); break; } }
+  var ok=0, fail=0, full=false;
+  for(var it of items){
+    try{ await idbPut(it.key,it.f); have.add(it.key); ok++; }
+    catch(e){ fail++; if(e&&e.name==="QuotaExceededError"){ full=true; break; } }
     if((ok+fail)%10===0) offMsg("가져오는 중… "+(ok+fail)+" / "+items.length);
   }
   importing=false;
-  if(!$("offMsg").textContent.startsWith("저장 공간")) offMsg(ok+"개 장을 가져왔습니다."+(fail?" ("+fail+"개 실패)":""));
-  renderOff(); renderCal(); if(curDay>=0) drawMeta();
+  offMsg(full?"저장 공간이 부족해서 "+ok+"개까지만 가져왔습니다.":ok+"개 장을 가져왔습니다."+(fail?" ("+fail+"개 실패)":""));
+  renderOff();
 }
-$("bPickDir").onclick=()=>$("inDir").click();
-$("bPickFiles").onclick=()=>$("inFiles").click();
-$("inDir").onchange=e=>{ importFiles(e.target.files); };
-$("inFiles").onchange=e=>{ importFiles(e.target.files); };
-$("bWipe").onclick=()=>{ $("wipeBox").hidden=false; };
-$("bWipeNo").onclick=()=>{ $("wipeBox").hidden=true; };
-$("bWipeYes").onclick=async()=>{ $("wipeBox").hidden=true; if(!db) return; try{ await tx("readwrite",s=>s.clear()); have.clear(); offMsg("저장한 오디오를 모두 지웠습니다."); }catch(e){ offMsg("지우지 못했습니다."); } renderOff(); renderCal(); if(curDay>=0) drawMeta(); };
+$("bPickDir").onclick=function(){ $("inDir").click(); };
+$("bPickFiles").onclick=function(){ $("inFiles").click(); };
+$("inDir").onchange=function(e){ importFiles(e.target.files); };
+$("inFiles").onchange=function(e){ importFiles(e.target.files); };
+$("bWipe").onclick=function(){ $("wipeBox").hidden=false; };
+$("bWipeNo").onclick=function(){ $("wipeBox").hidden=true; };
+$("bWipeYes").onclick=async function(){ $("wipeBox").hidden=true; if(!db) return; try{ await tx("readwrite",function(s){ return s.clear(); }); have.clear(); offMsg("저장한 오디오를 모두 지웠습니다."); }catch(e){ offMsg("지우지 못했습니다."); } renderOff(); };
 
-/* ---------- 탭 ---------- */
-function showTab(w){
-  [["today","viewToday","tabToday"],["cal","viewCal","tabCal"],["off","viewOff","tabOff"]].forEach(([k,v,t])=>{ $(v).hidden=k!==w; $(t).setAttribute("aria-selected",k===w); });
-  if(w==="off") renderOff();
-}
-$("tabToday").onclick=()=>showTab("today");
-$("tabCal").onclick=()=>{ showTab("cal"); renderCal(); };
-$("tabOff").onclick=()=>showTab("off");
+/* ════════════════════════════
+   Firebase Firestore 동기화
+════════════════════════════ */
+var fbDB=null;
+var FB_DOC="users/shared";
 
-/* ---------- 시작 ---------- */
-function boot(keepTab){
-  const t=dayIdx(todayStr());
-  const tab=keepTab===false?"cal":"today";
-  if(t<0) openDay(0,false);
-  else if(t>=DAYS){ const n=firstUndone(); if(n<0) showDone(DAYS-1); else openDay(n,false); }
-  else if(t in S.done) showDone(t);
-  else openDay(t,false);
-  showTab(tab);
+function setSyncStatus(status){
+  var dot=document.getElementById("sync-dot");
+  var txt=document.getElementById("sync-text");
+  if(!dot||!txt) return;
+  if(status==="ok"){ dot.style.background="#2d7a3a"; txt.textContent="동기화됨"; }
+  else if(status==="ing"){ dot.style.background="#c8a96e"; txt.textContent="동기화 중..."; }
+  else if(status==="err"){ dot.style.background="#c0392b"; txt.textContent="동기화 오류"; }
+  else { dot.style.background="#ccc"; txt.textContent="오프라인"; }
 }
-{ const t=new Date(), i=dayIdx(todayStr()); calTo(i>=0&&i<DAYS?t:parse(S.start)); }
-initDb().then(()=>boot());   // 저장된 오디오 목록을 읽은 뒤 시작
-// 날짜가 바뀐 뒤 다시 열면 그날 분량으로 자동 전환
-let bootDate=todayStr();
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden && resumeMsg && au.paused && curDay>=0){ wantPlay=true; tryPlay(); } });
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden && todayStr()!==bootDate){ bootDate=todayStr(); if(au.paused){ calTo(new Date()); boot(); } } });
-if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+
+function syncToFirebase(){
+  if(!fbDB||isSyncing) return;
+  setSyncStatus("ing");
+  fbDB.doc(FB_DOC).set({ done:[...done], updatedAt:firebase.firestore.FieldValue.serverTimestamp() },{merge:true})
+    .then(function(){ setSyncStatus("ok"); })
+    .catch(function(e){ console.warn("Firestore 저장 오류:",e); setSyncStatus("err"); });
+}
+
+function initFirebase(){
+  try {
+    if(typeof firebase==="undefined"){ setSyncStatus("off"); return; }
+    firebase.initializeApp({
+      apiKey:"AIzaSyDzkXA8-ot8f6RbmQZ7pjVRZ1bvec2ioEk",
+      authDomain:"bible-reading-88db5.firebaseapp.com",
+      projectId:"bible-reading-88db5",
+      storageBucket:"bible-reading-88db5.firebasestorage.app",
+      messagingSenderId:"72896820065",
+      appId:"1:72896820065:web:cac0ae7e5a0b6f64380b20"
+    });
+    fbDB=firebase.firestore();
+
+    /* 실시간 리스너 */
+    fbDB.doc(FB_DOC).onSnapshot(function(snap){
+      if(!snap.exists) return;
+      var data=snap.data();
+      if(!data||!data.done) return;
+      isSyncing=true;
+      done=new Set(data.done);
+      saveLocal();
+      BOOKS.forEach(function(_,bi){ updateCard(bi); });
+      highlightToday(); drawChips();
+      isSyncing=false;
+      setSyncStatus("ok");
+    }, function(err){ console.warn("리스너 오류:",err); setSyncStatus("err"); });
+
+    setSyncStatus("ok");
+  } catch(e){ console.warn("Firebase 오류:",e); setSyncStatus("err"); }
+}
+
+/* ════════════════════════════
+   PWA 알림
+════════════════════════════ */
+var ALARM_STORE="bible_alarm_on", ALARM_TIME_STORE="bible_alarm_time";
+var swReg=null;
+
+function getSavedAlarmTime(){ return localStorage.getItem(ALARM_TIME_STORE)||"08:00"; }
+function getAlarmHourMin(){
+  var parts=getSavedAlarmTime().split(":").map(Number);
+  return {h:parts[0],m:parts[1]};
+}
+function msUntilNextAlarm(){
+  var hm=getAlarmHourMin(), now=new Date();
+  var next=new Date(now.getFullYear(),now.getMonth(),now.getDate(),hm.h,hm.m,0,0);
+  if(next<=now) next.setDate(next.getDate()+1);
+  return next-now;
+}
+
+function sendAlarmMsg(msg){
+  if(!swReg) return;
+  var target=swReg.active||swReg.installing||swReg.waiting;
+  if(target) target.postMessage(msg);
+}
+
+function updateAlarmUI(on){
+  var btn=document.getElementById("alarm-btn");
+  var wrap=document.getElementById("alarm-time-wrap");
+  if(!btn) return;
+  if(on){ btn.textContent="🔔 알림 켜짐"; btn.classList.add("active"); if(wrap) wrap.style.display="flex"; }
+  else { btn.textContent="🔕 알림 설정"; btn.classList.remove("active"); if(wrap) wrap.style.display="none"; }
+}
+
+function showAlarmStatus(msg,type){
+  var el=document.getElementById("alarm-status");
+  if(!el) return;
+  el.style.display="block"; el.textContent=msg;
+  el.style.background=type==="on"?"#e8f4e8":type==="error"?"#fde8e8":"#f5f0e8";
+  el.style.color=type==="on"?"#1a5a2a":type==="error"?"#8a1a1a":"#6b6b7a";
+  el.style.border="1px solid "+(type==="on"?"#a0d4a0":type==="error"?"#f0a0a0":"#d4cfc4");
+  clearTimeout(el._t);
+  if(type!=="error") el._t=setTimeout(function(){ el.style.display="none"; },6000);
+}
+
+function showNextAlarmStatus(){
+  var hm=getAlarmHourMin();
+  var label=String(hm.h).padStart(2,"0")+":"+String(hm.m).padStart(2,"0");
+  var ms=msUntilNextAlarm();
+  var rh=Math.floor(ms/3600000), rm=Math.floor((ms%3600000)/60000);
+  showAlarmStatus("✅ 매일 "+label+" 알림 설정됨 — 다음 알림까지 약 "+rh+"시간 "+rm+"분","on");
+}
+
+async function toggleAlarm(){
+  if(!("serviceWorker" in navigator) || !("Notification" in window)){ showAlarmStatus("이 브라우저는 알림을 지원하지 않습니다.","error"); return; }
+  var isOn=localStorage.getItem(ALARM_STORE)==="1";
+  if(isOn){
+    sendAlarmMsg({type:"CANCEL_ALARM"});
+    localStorage.setItem(ALARM_STORE,"0");
+    updateAlarmUI(false);
+    showAlarmStatus("알림이 꺼졌습니다.","off");
+  } else {
+    if(Notification.permission!=="granted"){
+      var result=await Notification.requestPermission();
+      if(result!=="granted"){ showAlarmStatus("알림 권한이 거부되었습니다.","error"); return; }
+    }
+    var savedTime=getSavedAlarmTime();
+    sendAlarmMsg({type:"SCHEDULE_ALARM",alarmTime:savedTime});
+    localStorage.setItem(ALARM_STORE,"1");
+    updateAlarmUI(true);
+    showNextAlarmStatus();
+  }
+}
+
+function changeAlarmTime(val){
+  if(!val) return;
+  localStorage.setItem(ALARM_TIME_STORE,val);
+  if(localStorage.getItem(ALARM_STORE)==="1"){
+    sendAlarmMsg({type:"SCHEDULE_ALARM",alarmTime:val});
+    showNextAlarmStatus();
+  }
+}
+
+async function initPWA(){
+  if(!("serviceWorker" in navigator) || location.protocol!=="https:") return;
+  try {
+    swReg=await navigator.serviceWorker.register("./sw.js");
+    await navigator.serviceWorker.ready;
+    var savedTime=getSavedAlarmTime();
+    var inp=document.getElementById("alarm-time-input");
+    if(inp) inp.value=savedTime;
+    if(localStorage.getItem(ALARM_STORE)==="1"){
+      if(window.Notification && Notification.permission==="granted"){
+        sendAlarmMsg({type:"SCHEDULE_ALARM",alarmTime:savedTime});
+        updateAlarmUI(true);
+      }
+    } else { updateAlarmUI(false); }
+  } catch(e){ console.warn("SW 오류:",e); }
+}
+
+/* ════════════════════════════
+   시작
+════════════════════════════ */
+build();
+initDb().then(function(){ openPlayerDay(dayIndex(viewDate),false); });
+initFirebase();
+initPWA();
 </script>
 </body>
 </html>

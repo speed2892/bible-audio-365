@@ -1,11 +1,11 @@
 {
- "name": "성경 낭독 365",
- "short_name": "성경 낭독",
+ "name": "일 년 성경읽기 · 낭독",
+ "short_name": "성경읽기",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
- "background_color": "#f4efe6",
- "theme_color": "#1d2a44",
+ "background_color": "#e8e4dc",
+ "theme_color": "#2c4a7c",
  "lang": "ko",
  "icons": [
   {
