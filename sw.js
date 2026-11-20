@@ -1,6 +1,6 @@
 // 성경읽기 차트 + 낭독: 앱 화면을 오프라인에서도 열리게 보관하고, 매일 알림을 띄웁니다.
 // (낭독 오디오는 앱의 "오프라인 오디오"에서 따로 저장)
-const CACHE="bible-chart-audio-v1";
+const CACHE="bible-chart-audio-v2";
 const SHELL=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())); });
 self.addEventListener("activate",e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });

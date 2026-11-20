@@ -110,6 +110,42 @@ button { font-family:inherit; }
 .offline code { background:var(--light); padding:0 4px; border-radius:4px; }
 .chart-footer { margin-top:10px; padding-top:8px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:10px; color:var(--muted); }
 [hidden] { display:none !important; }
+/* 본문 읽기 화면 (앱 안) */
+.reader { position:fixed; inset:0; z-index:50; background:#fbf8f1; display:flex; flex-direction:column; }
+.rd-top { display:flex; align-items:center; gap:6px; padding:calc(env(safe-area-inset-top) + 8px) 10px 8px; background:var(--primary); color:#fff; }
+.rd-top button { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.3); color:#fff; border-radius:8px; min-width:38px; height:38px; font-size:15px; cursor:pointer; padding:0 8px; }
+.rd-title { flex:1; min-width:0; font-weight:700; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center; }
+.rd-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+.rd-text { max-width:40em; margin:0 auto; padding:18px 18px 40px; font-size:var(--rd-fs,18px); line-height:1.85; color:#222; word-break:keep-all; overflow-wrap:anywhere; }
+.rd-text h1 { font-family:'Noto Serif KR',serif; font-size:1.5em; text-align:center; margin:.2em 0 .6em; color:var(--primary); }
+.rd-text p { margin:0 0 .55em; }
+.rd-text p.sz, .rd-text p.sl { margin:0; padding-left:1.4em; text-indent:-1.4em; }
+.rd-text p.sl { margin-top:.45em; }
+.rd-text p.sw { font-size:.85em; color:var(--muted); font-style:italic; margin-bottom:.6em; }
+.rd-text sup { font-size:.62em; color:#9a7010; font-weight:700; margin-right:2px; vertical-align:.5em; line-height:0; }
+.rd-text .w_ch strong { font-size:2.1em; line-height:1; color:var(--primary); font-family:'Noto Serif KR',serif; float:left; margin:.12em .25em 0 0; }
+.rd-text .fn-ref { font-size:.7em; color:#9a7010; vertical-align:.5em; line-height:0; }
+.rd-text .rd-notes { margin-top:1.6em; padding-top:.8em; border-top:1px solid var(--border); font-size:.78em; color:var(--muted); line-height:1.6; }
+.rd-text .rd-notes p { margin:0 0 .4em; padding:0; text-indent:0; }
+.rd-text .verse-on { background:#fff1c9; border-radius:3px; }
+.rd-nav { display:flex; justify-content:space-between; gap:8px; max-width:40em; margin:0 auto; padding:0 18px 24px; }
+.rd-nav button { flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:#fff; font-size:15px; cursor:pointer; }
+.rd-bar { display:flex; align-items:center; gap:8px; padding:8px 12px calc(env(safe-area-inset-bottom) + 8px); background:#fff; border-top:1px solid var(--border); }
+.rd-bar .pl-play { width:46px; height:46px; font-size:18px; }
+.rd-bar .rb-btn { border:1px solid var(--border); background:#fff; border-radius:8px; height:40px; min-width:44px; font-size:13px; cursor:pointer; }
+.rd-bar .rb-info { flex:1; min-width:0; font-size:12px; color:var(--muted); }
+.rd-bar .rb-info b { display:block; color:var(--text); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rd-setup { max-width:34em; margin:0 auto; padding:22px 18px; font-size:15px; line-height:1.7; color:var(--text); }
+.rd-setup h2 { font-size:18px; color:var(--primary); margin-bottom:8px; }
+.rd-setup ol { padding-left:1.3em; margin:10px 0 14px; }
+.rd-setup li { margin:6px 0; }
+.rd-setup .big { display:block; width:100%; text-align:center; padding:13px; margin:8px 0; border-radius:10px; border:none; background:var(--primary); color:#fff; font-size:15px; font-weight:700; text-decoration:none; cursor:pointer; }
+.rd-setup .big.alt { background:#fff; color:var(--primary); border:1.5px solid var(--primary); }
+.rd-setup .note { font-size:13px; color:var(--muted); }
+@media (min-width:600px){ .rd-text { padding:26px 32px 48px; } }
+.rd-text p.sl .w_ch strong, .rd-text p.sz .w_ch strong { float:none; font-size:1.5em; margin:0 .2em 0 0; vertical-align:-.1em; }
+@media (max-width:420px){ #rdPrev, #rdNext { display:none; } .rd-top button { min-width:40px; } }
+@media print { .reader { display:none !important; } }
 @media (max-width:640px){
   .page-wrap { margin:0; border-radius:0; padding:1rem .8rem; }
   .books-grid { grid-template-columns:repeat(2,1fr); }
@@ -176,7 +212,7 @@ button { font-family:inherit; }
           <div class="pl-now" id="pNow">—</div>
           <div class="pl-sub" id="pSub"></div>
         </div>
-        <button class="btn btn-read" id="bRead" title="jw.org 연구용 성경 본문을 새 창으로 엽니다">📖 본문 보기</button>
+        <button class="btn btn-read" id="bRead" title="지금 낭독하는 장의 본문을 화면에 맞게 보여 줍니다">📖 본문 보기</button>
       </div>
       <div class="pl-chips" id="pChips"></div>
       <div class="pl-seek">
@@ -196,7 +232,7 @@ button { font-family:inherit; }
             <option value="1.2">1.2배</option><option value="1.5">1.5배</option><option value="2">2.0배</option>
           </select>
         </label>
-        <label title="낭독이 다음 장으로 넘어가면 열어 둔 본문 창도 함께 넘어갑니다"><input type="checkbox" id="follow" checked> 본문 따라가기</label>
+        <label title="낭독이 다음 장으로 넘어가면 본문 화면도 함께 넘어갑니다"><input type="checkbox" id="follow" checked> 본문 따라가기</label>
       </div>
       <div class="pl-msg" id="msg"></div>
     </div>
@@ -224,8 +260,42 @@ button { font-family:inherit; }
   </details>
 
   <div class="chart-footer">
-    <span>클릭=체크 &nbsp;|&nbsp; 길게누르기(모바일)/더블클릭(PC)=jw.org 열기 &nbsp;|&nbsp; 낭독을 끝까지 들은 장은 자동 체크</span>
+    <span>클릭=체크 &nbsp;|&nbsp; 길게누르기(모바일)/더블클릭(PC)=본문 보기 &nbsp;|&nbsp; 낭독을 끝까지 들은 장은 자동 체크</span>
     <span id="footer-progress"></span>
+  </div>
+</div>
+<div class="reader" id="reader" hidden>
+  <div class="rd-top">
+    <button id="rdClose" aria-label="닫기">✕</button>
+    <button id="rdPrev" aria-label="이전 장">‹</button>
+    <div class="rd-title" id="rdTitle">본문</div>
+    <button id="rdNext" aria-label="다음 장">›</button>
+    <button id="rdSmall" aria-label="글자 작게">가−</button>
+    <button id="rdBig" aria-label="글자 크게">가+</button>
+  </div>
+  <div class="rd-body" id="rdBody">
+    <div class="rd-text" id="rdText"></div>
+    <div class="rd-nav" id="rdNav"><button id="rdPrev2">‹ 이전 장</button><button id="rdNext2">다음 장 ›</button></div>
+    <div class="rd-setup" id="rdSetup" hidden>
+      <h2>본문을 앱 안에서 보려면</h2>
+      <p>jw.org의 <b>신세계역 성경 EPUB 파일</b>을 한 번만 가져오면, 화면 폭(바깥 화면·안쪽 화면)에 맞춰 본문이 보이고 인터넷 없이도 읽을 수 있습니다.</p>
+      <ol>
+        <li>아래 <b>성경 EPUB 받기</b>를 눌러 파일(약 14MB)을 내려받습니다.</li>
+        <li><b>받은 파일 가져오기</b>를 눌러 내려받은 <code>nwt_KO.epub</code>을 고릅니다. (보통 ‘다운로드’ 폴더)</li>
+      </ol>
+      <a class="big" id="rdGet" href="https://cfp2.jw-cdn.org/a/70b89ce/3/o/nwt_KO.epub" target="_blank" rel="noopener">① 성경 EPUB 받기 (jw.org)</a>
+      <button class="big" id="rdPick">② 받은 파일 가져오기</button>
+      <input type="file" id="rdFile" accept=".epub,application/epub+zip" hidden>
+      <p class="note" id="rdMsg"></p>
+      <p class="note">①이 열리지 않으면 jw.org &gt; 출판물 &gt; 성경에서 ‘신세계역 성경’의 EPUB을 받으세요.</p>
+      <button class="big alt" id="rdWeb">jw.org 웹페이지로 보기</button>
+    </div>
+  </div>
+  <div class="rd-bar">
+    <button class="pl-play" id="rbPlay" aria-label="낭독 재생">▶</button>
+    <div class="rb-info"><b id="rbNow">—</b><span id="rbTime">0:00 / 0:00</span></div>
+    <button class="rb-btn" id="rbPrev" aria-label="이전 장 낭독">◀◀</button>
+    <button class="rb-btn" id="rbNext" aria-label="다음 장 낭독">▶▶</button>
   </div>
 </div>
 <audio id="au" preload="metadata"></audio>
@@ -484,31 +554,132 @@ function build(){
 }
 
 /* ════════════════════════════
-   본문 창 (jw.org 연구용 성경)
-   — jw.org는 다른 사이트 안에 끼워 보여 주는 것을 막고 있어 별도 창으로 엽니다.
-     한 번 연 창은 낭독이 다음 장으로 넘어갈 때 함께 넘어갑니다.
+   본문 읽기 (앱 안)
+   — jw.org 웹페이지는 앱 안에 넣을 수 없어서, 사용자가 jw.org에서 받은 성경 EPUB을
+     이 기기에 저장해 두고 그 안의 본문을 화면 폭에 맞게 보여 줍니다.
 ════════════════════════════ */
-var readerWin=null;
+var EP=null;          // {buf, dv, ents}
+var rdB=0, rdC=1, rdOpen=false, rdFollow=true;
+var RD_FS_KEY="bible2026_rdfs";
+function rdFs(){ var v=parseInt(localStorage.getItem(RD_FS_KEY)||"18",10); return v>=13&&v<=32?v:18; }
+function setFs(v){ v=Math.max(13,Math.min(32,v)); try{ localStorage.setItem(RD_FS_KEY,String(v)); }catch(e){} document.getElementById("rdText").style.setProperty("--rd-fs",v+"px"); }
+
+function textDb(){ return new Promise(function(res,rej){ var rq; try{ rq=indexedDB.open("bibleText",1); }catch(e){ return rej(e); }
+  rq.onupgradeneeded=function(){ rq.result.createObjectStore("files"); }; rq.onsuccess=function(){ res(rq.result); }; rq.onerror=function(){ rej(rq.error); }; }); }
+function tGet(k){ return textDb().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction("files","readonly"); var r=t.objectStore("files").get(k); r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); }); }
+function tPut(k,v){ return textDb().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction("files","readwrite"); t.objectStore("files").put(v,k); t.oncomplete=function(){ res(); }; t.onerror=t.onabort=function(){ rej(t.error); }; }); }); }
+
+async function epOpen(blob){
+  var buf=new Uint8Array(await blob.arrayBuffer()), dv=new DataView(buf.buffer), e=buf.length-22;
+  while(e>0 && dv.getUint32(e,true)!==0x06054b50) e--;
+  if(e<=0) throw new Error("zip");
+  var n=dv.getUint16(e+10,true), p=dv.getUint32(e+16,true), td=new TextDecoder(), ents=new Map();
+  for(var i=0;i<n;i++){
+    var fl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true);
+    ents.set(td.decode(buf.subarray(p+46,p+46+fl)),{comp:dv.getUint16(p+10,true),csz:dv.getUint32(p+20,true),lo:dv.getUint32(p+42,true)});
+    p+=46+fl+xl+cl;
+  }
+  if(!ents.has("OEBPS/bibleversenav1_1.xhtml")) throw new Error("notbible");
+  return {buf:buf,dv:dv,ents:ents};
+}
+async function epRead(name){
+  var en=EP.ents.get(name); if(!en) throw new Error("missing "+name);
+  var lo=en.lo, fl=EP.dv.getUint16(lo+26,true), xl=EP.dv.getUint16(lo+28,true);
+  var data=EP.buf.slice(lo+30+fl+xl, lo+30+fl+xl+en.csz);
+  if(en.comp===0) return new TextDecoder().decode(data);
+  var out=await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();
+  return new TextDecoder().decode(out);
+}
+var chCache=new Map();
+async function chapterNode(b,c){   // b: 1~66
+  var k=b+"_"+c; if(chCache.has(k)) return chCache.get(k).cloneNode(true);
+  var nav=await epRead("OEBPS/bibleversenav"+b+"_"+c+".xhtml");
+  var m=nav.match(/href="([^"#]+)#chapter\d+_verse/); if(!m) throw new Error("nav");
+  var doc=new DOMParser().parseFromString(await epRead("OEBPS/"+m[1]),"application/xhtml+xml");
+  var body=doc.getElementsByTagName("body")[0];
+  var out=document.createElement("div");
+  // 허용한 요소만 옮겨 담기 (링크·그림·스크립트 제외)
+  var KEEP={P:1,H1:1,H2:1,H3:1,STRONG:1,SUP:1,SPAN:1,EM:1,I:1,B:1,BR:1,DIV:1,HEADER:1};
+  function copy(node,parent){
+    node.childNodes.forEach(function(ch){
+      if(ch.nodeType===3){ parent.appendChild(document.createTextNode(ch.nodeValue)); return; }
+      if(ch.nodeType!==1) return;
+      var tag=ch.localName.toUpperCase(), cls=ch.getAttribute("class")||"", id=ch.getAttribute("id")||"";
+      if(/w_navigation|pageNum/.test(cls)) return;
+      if(tag==="A"){ if(ch.getAttribute("epub:type")==="noteref"||/^#footnote/.test(ch.getAttribute("href")||"")){ var s=document.createElement("span"); s.className="fn-ref"; s.textContent="*"; parent.appendChild(s); } else copy(ch,parent); return; }
+      if(tag==="ASIDE"){ copy(ch,parent); return; }
+      if(!KEEP[tag]) return;
+      var el=document.createElement(tag==="HEADER"?"div":tag.toLowerCase());
+      if(/groupFootnote/.test(cls)) el.className="rd-notes";
+      else if(/\b(sz|sl|sw|sb|w_ch)\b/.test(cls)) el.className=(cls.match(/\b(sz|sl|sw|sb|w_ch)\b/)||[])[1];
+      var vm=id.match(/^chapter\d+_verse(\d+)$/); if(vm){ el.className="v"; el.setAttribute("data-v",vm[1]); }
+      copy(ch,el); parent.appendChild(el);
+    });
+  }
+  copy(body,out);
+  chCache.set(k,out.cloneNode(true)); if(chCache.size>12) chCache.delete(chCache.keys().next().value);
+  return out;
+}
+async function loadEpubSaved(){
+  try{ var blob=await tGet("nwt_KO.epub"); if(blob) EP=await epOpen(blob); }catch(e){ EP=null; }
+}
+function rdTitle(b,c){ var bk=BOOKS[b-1]; return bk.ch===1?bk.name:bk.name+" "+c+(b===19?"편":"장"); }
+async function rdShow(b,c){
+  rdB=b; rdC=c; var tx=document.getElementById("rdText");
+  document.getElementById("rdTitle").textContent=rdTitle(b,c);
+  if(!EP){ tx.innerHTML=""; document.getElementById("rdSetup").hidden=false; document.getElementById("rdNav").hidden=true; return; }
+  document.getElementById("rdSetup").hidden=true; document.getElementById("rdNav").hidden=false;
+  try{ var node=await chapterNode(b,c); if(rdB!==b||rdC!==c) return; tx.innerHTML=""; tx.appendChild(node); }
+  catch(e){ tx.textContent="이 장의 본문을 읽지 못했습니다."; }
+  document.getElementById("rdBody").scrollTop=0;
+}
+function rdStep(d){
+  var b=rdB, c=rdC+d;
+  if(c<1){ if(b<=1) return; b--; c=BOOKS[b-1].ch; }
+  else if(c>BOOKS[b-1].ch){ if(b>=66) return; b++; c=1; }
+  rdShow(b,c);
+}
+// 차트·버튼에서 부르는 함수: bi는 0부터
 function openReader(bi,chNum){
-  var url=jwUrl(bi,chNum);
-  if(readerWin && !readerWin.closed){
-    try{ readerWin.location.href=url; readerWin.focus(); return; }catch(e){}
-  }
-  var wide=window.innerWidth>=1000 && !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-  var feat=null;
-  if(wide){
-    var w=Math.round(screen.availWidth/2), h=screen.availHeight;
-    feat="popup=yes,width="+w+",height="+h+",left="+(screen.availWidth-w)+",top=0";
-  }
-  readerWin = feat ? window.open(url,"bibleReader",feat) : window.open(url,"bibleReader");
-  if(!readerWin) showMsg("본문 창이 차단되었습니다. 브라우저 주소창의 팝업 차단 표시에서 이 사이트를 허용해 주세요.");
+  rdOpen=true; document.getElementById("reader").hidden=false; document.body.style.overflow="hidden";
+  try{ if(!history.state||!history.state.rd) history.pushState({rd:1},""); }catch(e){}
+  syncBar(); rdShow(bi+1,chNum);
 }
+function closeReader(fromPop){
+  if(!rdOpen) return; rdOpen=false; document.getElementById("reader").hidden=true; document.body.style.overflow="";
+  if(!fromPop){ try{ if(history.state&&history.state.rd) history.back(); }catch(e){} }
+}
+window.addEventListener("popstate",function(){ if(rdOpen) closeReader(true); });
+// 낭독이 다음 장으로 넘어가면 읽기 화면도 따라감
 function followReader(){
-  if(!document.getElementById("follow").checked) return;
-  if(!readerWin || readerWin.closed || pDay<0) return;
-  var x=DAY_PLAN[pDay][pi];
-  try{ readerWin.location.href=jwUrl(x.bi,x.chNum); }catch(e){}
+  syncBar();
+  if(!rdOpen || pDay<0 || !document.getElementById("follow").checked) return;
+  var x=DAY_PLAN[pDay][pi]; rdShow(x.bi+1,x.chNum);
 }
+function syncBar(){
+  if(pDay<0) return; var x=DAY_PLAN[pDay][pi];
+  document.getElementById("rbNow").textContent=chName(x);
+}
+document.getElementById("rdClose").onclick=function(){ closeReader(false); };
+document.getElementById("rdPrev").onclick=document.getElementById("rdPrev2").onclick=function(){ rdStep(-1); };
+document.getElementById("rdNext").onclick=document.getElementById("rdNext2").onclick=function(){ rdStep(1); };
+document.getElementById("rdSmall").onclick=function(){ setFs(rdFs()-2); };
+document.getElementById("rdBig").onclick=function(){ setFs(rdFs()+2); };
+document.getElementById("rdWeb").onclick=function(){ window.open(jwUrl(rdB-1,rdC),"_blank"); };
+document.getElementById("rdPick").onclick=function(){ document.getElementById("rdFile").click(); };
+document.getElementById("rdFile").onchange=async function(e){
+  var f=e.target.files&&e.target.files[0]; if(!f) return; var msg=document.getElementById("rdMsg");
+  msg.textContent="가져오는 중…";
+  try{ var ep=await epOpen(f); await tPut("nwt_KO.epub",f); EP=ep; chCache.clear(); msg.textContent="";
+    try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(_){}
+    rdShow(rdB,rdC); renderOff(); }
+  catch(err){ msg.textContent = err&&err.message==="notbible" ? "성경(신세계역) EPUB 파일이 아닙니다. nwt_KO.epub을 골라 주세요." : "파일을 읽지 못했습니다. 다시 받아서 가져와 주세요."; }
+  e.target.value="";
+};
+document.getElementById("rbPlay").onclick=function(){ document.getElementById("bPlay").click(); };
+document.getElementById("rbPrev").onclick=function(){ document.getElementById("bPrev").click(); };
+document.getElementById("rbNext").onclick=function(){ document.getElementById("bNext").click(); };
+setFs(rdFs());
 
 /* ════════════════════════════
    낭독 플레이어
@@ -528,7 +699,7 @@ function showMsg(t){ var m=$("msg"); m.textContent=t||""; m.classList.toggle("sh
 function chName(x){ return BOOKS[x.bi].ch===1 ? x.bookName : x.bookName+" "+x.chNum+(x.bi===18?"편":"장"); }
 function okey(x){ return (x.bi+1)+"-"+x.chNum; }   // 오프라인 저장 열쇠
 
-function setPlayIcon(){ var p=!au.paused; $("bPlay").textContent=p?"❚❚":"▶"; $("bPlay").setAttribute("aria-label",p?"일시정지":"낭독 재생"); }
+function setPlayIcon(){ var p=!au.paused; $("bPlay").textContent=p?"❚❚":"▶"; $("bPlay").setAttribute("aria-label",p?"일시정지":"낭독 재생"); $("rbPlay").textContent=p?"❚❚":"▶"; $("rbPlay").setAttribute("aria-label",p?"일시정지":"낭독 재생"); }
 
 function drawChips(){
   var box=$("pChips"); if(!box||pDay<0) return; box.innerHTML="";
@@ -631,6 +802,7 @@ au.addEventListener("pause",function(){
 au.addEventListener("timeupdate",function(){
   if(!seeking && au.duration){ $("seek").value=Math.round(au.currentTime/au.duration*1000); }
   $("tCur").textContent=fmt(au.currentTime); if(au.duration) $("tDur").textContent=fmt(au.duration);
+  if(rdOpen) $("rbTime").textContent=fmt(au.currentTime)+" / "+fmt(au.duration||0);
   var n=Date.now(); if(n-lastSave>5000){ lastSave=n; savePos(); }
   if(wantPlay && au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.05){ var tok=loadTok; setTimeout(function(){ if(tok===loadTok && nearEnd() && !advanced) advance(); },1500); }
 });
@@ -678,7 +850,7 @@ async function initDb(){
 }
 function offMsg(t){ var m=$("offMsg"); m.textContent=t||""; m.classList.toggle("show",!!t); }
 function renderOff(){
-  $("offStat").textContent=db ? have.size.toLocaleString()+" / 1,189장 저장됨" : "이 브라우저에서는 사용할 수 없음";
+  $("offStat").textContent=(db ? "오디오 "+have.size.toLocaleString()+" / 1,189장" : "오디오 저장 불가")+" · 본문 "+(EP?"저장됨":"없음");
   drawSub();
 }
 var importing=false;
@@ -869,6 +1041,7 @@ async function initPWA(){
 ════════════════════════════ */
 build();
 initDb().then(function(){ openPlayerDay(dayIndex(viewDate),false); });
+loadEpubSaved().then(function(){ renderOff(); });
 initFirebase();
 initPWA();
 </script>
