@@ -232,6 +232,7 @@ button { font-family:inherit; }
             <option value="1.2">1.2배</option><option value="1.5">1.5배</option><option value="2">2.0배</option>
           </select>
         </label>
+        <label id="awakeWrap" title="낭독하는 동안 화면이 꺼지지 않게 합니다 (배터리를 더 씁니다)"><input type="checkbox" id="awake"> 화면 켜두기</label>
         <label title="낭독이 다음 장으로 넘어가면 본문 화면도 함께 넘어갑니다"><input type="checkbox" id="follow" checked> 본문 따라가기</label>
       </div>
       <div class="pl-msg" id="msg"></div>
@@ -256,6 +257,15 @@ button { font-family:inherit; }
       <li>PC에서 <code>download-audio.bat</code>을 실행하면 <code>bible-audio</code> 폴더에 낭독 파일 1,189개(약 2.3GB)가 받아집니다.</li>
       <li>PC에서는 <b>폴더에서 가져오기</b>로 그 폴더를 고릅니다.</li>
       <li>휴대폰·태블릿은 그 폴더를 기기로 복사한 뒤 <b>파일 선택해서 가져오기</b>로 전체 선택합니다. 나누어 가져와도 됩니다.</li>
+    </ol>
+  </details>
+
+  <details class="offline">
+    <summary>화면 꺼짐 중 낭독이 끊길 때 (갤럭시)</summary>
+    <ol>
+      <li><b>절전 예외 등록</b>: 설정 → 배터리 → 백그라운드 사용 제한 → <b>‘절전 예외 앱’</b>에 <b>Chrome</b>(홈 화면 앱은 Chrome 안에서 돌아갑니다)을 추가하고, ‘사용하지 않는 앱을 절전 상태로 전환’은 끕니다.</li>
+      <li><b>배터리 사용 무제한</b>: 설정 → 애플리케이션 → Chrome → 배터리 → <b>‘제한 없음’</b>.</li>
+      <li>그래도 끊기면 플레이어의 <b>‘화면 켜두기’</b>를 켜면 낭독하는 동안 화면이 꺼지지 않습니다. (화면 밝기를 낮추면 배터리를 덜 씁니다)</li>
     </ol>
   </details>
 
@@ -299,6 +309,7 @@ button { font-family:inherit; }
   </div>
 </div>
 <audio id="au" preload="metadata"></audio>
+<audio id="au2" preload="auto"></audio>
 
 <script>
 /* ════════════════════════════
@@ -685,10 +696,14 @@ setFs(rdFs());
    낭독 플레이어
 ════════════════════════════ */
 var $=function(id){ return document.getElementById(id); };
-var au=$("au");
-var pDay=-1, pi=0, wantPlay=false, seeking=false, lastSave=0, loadTok=0, objUrl=null, pre=null, advanced=false, resumeMsg=false;
+/* 두 개의 오디오를 번갈아 씀: 지금 장(au)을 재생하는 동안 다음 장(nx)을 미리 받아 두었다가,
+   지금 장이 끝나기 직전에 다음 장을 바로 이어 재생합니다. 소리가 끊기는 틈이 없어야
+   화면이 꺼진 휴대폰(갤럭시 등)이 앱을 멈추지 않습니다. */
+var au=$("au"), nx=$("au2"), nxKey="", nxReady=false;
+var pDay=-1, pi=0, wantPlay=false, seeking=false, lastSave=0, loadTok=0, advanced=false, resumeMsg=false;
+var elUrl=new Map();   // 오디오 요소별로 쓰고 있는 오프라인(blob) 주소
 var PKEY="bible2026_player";
-var PS={day:-1,pi:0,t:0,rate:1};
+var PS={day:-1,pi:0,t:0,rate:1,awake:false};
 try{ var _r=JSON.parse(localStorage.getItem(PKEY)||"null"); if(_r) PS=Object.assign(PS,_r); }catch(e){}
 function savePS(){ try{ localStorage.setItem(PKEY,JSON.stringify(PS)); }catch(e){} }
 function savePos(){ if(pDay<0) return; PS.day=pDay; PS.pi=pi; PS.t=Math.floor(au.currentTime||0); savePS(); }
@@ -719,6 +734,11 @@ function drawSub(){
   day.forEach(function(x){ tot+=TRACKS[x.bi][x.chNum].dur; if(!have.has(okey(x))) off=false; });
   $("pSub").textContent=shortDate(pDay)+" 분량 · "+day.length+"장 · 약 "+Math.round(tot/60)+"분 · "+(off?"오프라인 저장됨":"인터넷으로 재생");
 }
+function drawNow(){
+  var x=DAY_PLAN[pDay][pi], t=TRACKS[x.bi][x.chNum];
+  $("pNow").textContent=chName(x); $("tDur").textContent=fmt(t.dur);
+  drawChips(); setMedia(); followReader();
+}
 
 function openPlayerDay(di,autoplay){
   if(di<0||di>=DAYS) return;
@@ -736,46 +756,75 @@ function playerFollowView(){
   openPlayerDay(di,false);
 }
 
+// 오디오 요소에 장 주소 넣기 (오프라인 저장분이 있으면 그것을 씀)
+async function srcFor(x){
+  var k=okey(x);
+  if(db && have.has(k)){ try{ var blob=await idbGet(k); if(blob) return {url:URL.createObjectURL(blob),blob:true}; }catch(e){} }
+  return {url:TRACKS[x.bi][x.chNum].url,blob:false};
+}
+function setSrc(el,s){
+  var old=elUrl.get(el); if(old && old!==s.url) URL.revokeObjectURL(old);
+  if(s.blob) elUrl.set(el,s.url); else elUrl.delete(el);
+  el.src=s.url;
+}
+
 async function loadChapter(i,startAt){
   var day=DAY_PLAN[pDay]; if(i<0||i>=day.length) return;
-  pi=i; drawChips();
-  var x=day[i], t=TRACKS[x.bi][x.chNum], tok=++loadTok, k=okey(x);
-  $("pNow").textContent=chName(x);
-  $("tDur").textContent=fmt(t.dur); $("tCur").textContent=fmt(startAt||0); $("seek").value=0;
-  var src=t.url;
-  if(pre && pre.key===k){ src=pre.url; useObj(pre.url); pre=null; }
-  else if(db && have.has(k)){
-    try{ var blob=await idbGet(k); if(tok!==loadTok) return;
-      if(blob){ src=URL.createObjectURL(blob); useObj(src); } }catch(e){}
-  }
+  pi=i; var x=day[i], tok=++loadTok;
+  $("tCur").textContent=fmt(startAt||0); $("seek").value=0; drawNow();
   advanced=false; resumeMsg=false;
-  au.src=src; au.playbackRate=PS.rate||1;
+  if(nxReady && nxKey===okey(x) && !(startAt>1)){ swapToNext(); return; }   // 미리 받아 둔 장이면 바로
+  var s=await srcFor(x); if(tok!==loadTok) return;
+  nx.pause();
+  setSrc(au,s); au.playbackRate=PS.rate||1;
   if(startAt>1) au.addEventListener("loadedmetadata",function(){ try{ au.currentTime=Math.min(startAt,(au.duration||startAt)-1); }catch(e){} },{once:true});
   if(wantPlay) tryPlay();
-  setMedia(); prepNext(); followReader();
+  prepNext();
 }
-function useObj(u){ if(objUrl && objUrl!==u) URL.revokeObjectURL(objUrl); objUrl=u; }
 function tryPlay(){
   var p=au.play(); if(!p||!p.catch) return;
   p.catch(function(e){
     if(e && e.name==="AbortError") return;
     wantPlay=false; setPlayIcon();
-    if(pDay>=0){ resumeMsg=true; showMsg("다음 장 재생이 멈췄습니다 (화면이 꺼져 있으면 기기가 막을 수 있습니다). ▶ 를 누르면 "+chName(DAY_PLAN[pDay][pi])+"부터 이어집니다."); }
+    if(pDay>=0){ resumeMsg=true; showMsg("다음 장 재생이 멈췄습니다. ▶ 를 누르면 "+chName(DAY_PLAN[pDay][pi])+"부터 이어집니다. (아래 ‘화면 꺼짐 중 끊길 때’ 안내를 참고하세요)"); }
   });
 }
+// 다음 장을 두 번째 오디오에 미리 받아 두기
 async function prepNext(){
-  if(pDay<0||!db) return; var nx=DAY_PLAN[pDay][pi+1]; if(!nx) return;
-  var k=okey(nx); if(!have.has(k) || (pre&&pre.key===k)) return;
-  try{ var blob=await idbGet(k); if(!blob||pDay<0||DAY_PLAN[pDay][pi+1]!==nx) return;
-    if(pre) URL.revokeObjectURL(pre.url); pre={key:k,url:URL.createObjectURL(blob)}; }catch(e){}
+  nxReady=false; nxKey="";
+  if(pDay<0) return; var x=DAY_PLAN[pDay][pi+1]; if(!x) return;
+  var day=pDay, idx=pi+1, k=okey(x);
+  var s=await srcFor(x); if(pDay!==day||pi+1!==idx){ if(s.blob) URL.revokeObjectURL(s.url); return; }
+  nx.pause(); setSrc(nx,s); nx.preload="auto"; nx.playbackRate=PS.rate||1;
+  nxKey=k;
+  var mark=function(){ if(nxKey===k) nxReady=true; };
+  if(nx.readyState>=3) mark(); else nx.addEventListener("canplaythrough",mark,{once:true});
+  nx.addEventListener("loadeddata",mark,{once:true});
+  try{ nx.load(); }catch(e){}
+}
+// 미리 받아 둔 다음 장으로 바로 넘어가기 (같은 순간에 재생 시작 → 소리 끊김 없음)
+function swapToNext(){
+  var old=au; au=nx; nx=old;
+  nxReady=false; nxKey="";
+  au.currentTime=0; au.playbackRate=PS.rate||1;
+  if(wantPlay) tryPlay();
+  old.pause();
+  advanced=false; resumeMsg=false; loadTok++;
+  drawNow(); setPlayIcon(); savePos();
+  prepNext();
 }
 // 장을 끝까지 들으면: 차트에 체크 → 다음 장 (한 장에 한 번만)
 function advance(){
   if(pDay<0||advanced) return; advanced=true;
   var x=DAY_PLAN[pDay][pi]; markDone(x.bi,x.ci);
-  if(pi+1<DAY_PLAN[pDay].length){ wantPlay=true; loadChapter(pi+1,0); savePos(); }
+  if(pi+1<DAY_PLAN[pDay].length){
+    wantPlay=true; pi=pi+1; $("tCur").textContent="0:00"; $("seek").value=0;
+    if(nxReady && nxKey===okey(DAY_PLAN[pDay][pi])) swapToNext();
+    else loadChapter(pi,0);
+    savePos();
+  }
   else {
-    wantPlay=false; setPlayIcon(); PS.day=-1; savePS(); drawChips();
+    wantPlay=false; setPlayIcon(); PS.day=-1; savePS(); drawChips(); releaseWake();
     var nd=pDay+1;
     showMsg(shortDate(pDay)+" 분량을 다 들었습니다."+(nd<DAYS?" 다음 분량: "+shortDate(nd)+" "+formatReading(DAY_PLAN[nd]).replace(/&nbsp;/g," "):""));
   }
@@ -783,9 +832,9 @@ function advance(){
 function setMedia(){
   if(!("mediaSession" in navigator)||pDay<0) return; var x=DAY_PLAN[pDay][pi];
   try{
-    navigator.mediaSession.metadata=new MediaMetadata({title:chName(x),artist:"성경 낭독 · "+shortDate(pDay),album:"신세계역 성경"});
-    navigator.mediaSession.setActionHandler("play",function(){ au.play(); });
-    navigator.mediaSession.setActionHandler("pause",function(){ au.pause(); });
+    navigator.mediaSession.metadata=new MediaMetadata({title:chName(x),artist:"성경 낭독 · "+shortDate(pDay),album:"신세계역 성경",artwork:[{src:"icon-512.png",sizes:"512x512",type:"image/png"}]});
+    navigator.mediaSession.setActionHandler("play",function(){ wantPlay=true; tryPlay(); });
+    navigator.mediaSession.setActionHandler("pause",function(){ wantPlay=false; au.pause(); });
     navigator.mediaSession.setActionHandler("previoustrack",function(){ $("bPrev").click(); });
     navigator.mediaSession.setActionHandler("nexttrack",function(){ $("bNext").click(); });
     navigator.mediaSession.setActionHandler("seekbackward",function(){ au.currentTime=Math.max(0,au.currentTime-10); });
@@ -794,23 +843,44 @@ function setMedia(){
 }
 function nearEnd(){ return au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.6; }
 
-au.addEventListener("play",function(){ wantPlay=true; resumeMsg=false; setPlayIcon(); showMsg(""); try{ navigator.mediaSession.playbackState="playing"; }catch(e){} });
-au.addEventListener("pause",function(){
+// 두 오디오 모두에 이벤트를 달되, 지금 재생 담당(au)인 것만 처리
+function onAu(type,fn){ [$("au"),$("au2")].forEach(function(el){ el.addEventListener(type,function(e){ if(el!==au) return; fn(e); }); }); }
+onAu("play",function(){ wantPlay=true; resumeMsg=false; setPlayIcon(); showMsg(""); holdWake(); try{ navigator.mediaSession.playbackState="playing"; }catch(e){} });
+onAu("pause",function(){
   setPlayIcon(); savePos();
-  if(wantPlay && nearEnd()){ var tok=loadTok; setTimeout(function(){ if(tok===loadTok && au.paused && nearEnd()) advance(); },1200); }
+  if(wantPlay && nearEnd()){ var tok=loadTok; setTimeout(function(){ if(tok===loadTok && au.paused && nearEnd()) advance(); },1200); return; }
+  if(!wantPlay){ releaseWake(); try{ navigator.mediaSession.playbackState="paused"; }catch(e){} }
 });
-au.addEventListener("timeupdate",function(){
+onAu("timeupdate",function(){
   if(!seeking && au.duration){ $("seek").value=Math.round(au.currentTime/au.duration*1000); }
   $("tCur").textContent=fmt(au.currentTime); if(au.duration) $("tDur").textContent=fmt(au.duration);
   if(rdOpen) $("rbTime").textContent=fmt(au.currentTime)+" / "+fmt(au.duration||0);
   var n=Date.now(); if(n-lastSave>5000){ lastSave=n; savePos(); }
-  if(wantPlay && au.duration && isFinite(au.duration) && au.currentTime>=au.duration-0.05){ var tok=loadTok; setTimeout(function(){ if(tok===loadTok && nearEnd() && !advanced) advance(); },1500); }
+  if(!wantPlay || !au.duration || !isFinite(au.duration)) return;
+  var left=(au.duration-au.currentTime)/(au.playbackRate||1);
+  // 끝나기 직전(0.4초 안)에 미리 받아 둔 다음 장으로 이어 붙임
+  if(left<=0.4 && !advanced && nxReady && pi+1<DAY_PLAN[pDay].length && nxKey===okey(DAY_PLAN[pDay][pi+1])){ advance(); return; }
+  if(au.currentTime>=au.duration-0.05){ var tok=loadTok; setTimeout(function(){ if(tok===loadTok && nearEnd() && !advanced) advance(); },1500); }
 });
-au.addEventListener("ended",advance);
-au.addEventListener("error",function(){
+onAu("ended",advance);
+onAu("error",function(){
   if(!au.getAttribute("src")||pDay<0) return; wantPlay=false; setPlayIcon();
   showMsg(have.has(okey(DAY_PLAN[pDay][pi]))?"저장된 오디오를 재생하지 못했습니다. ▶ 를 다시 눌러 주세요.":"이 장은 오프라인에 저장되어 있지 않아 인터넷이 필요합니다. 연결을 확인한 뒤 ▶ 를 다시 눌러 주세요.");
 });
+// 미리 받던 다음 장에 오류가 나면 그때 다시 받음
+nx.addEventListener("error",function(){ if(this===nx){ nxReady=false; nxKey=""; } });
+$("au").addEventListener("error",function(){ if(this===nx){ nxReady=false; nxKey=""; } });
+
+/* 재생 중 화면 켜두기 (선택) */
+var wakeLock=null;
+async function holdWake(){
+  if(!PS.awake || !("wakeLock" in navigator) || document.hidden || wakeLock) return;
+  try{ wakeLock=await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release",function(){ wakeLock=null; }); }catch(e){ wakeLock=null; }
+}
+function releaseWake(){ if(wakeLock){ try{ wakeLock.release(); }catch(e){} wakeLock=null; } }
+$("awake").checked=!!PS.awake;
+if(!("wakeLock" in navigator)) $("awakeWrap").hidden=true;
+$("awake").onchange=function(){ PS.awake=$("awake").checked; savePS(); if(PS.awake && !au.paused) holdWake(); else if(!PS.awake) releaseWake(); };
 
 $("bPlay").onclick=function(){
   if(pDay<0){ openPlayerDay(dayIndex(viewDate),true); return; }
@@ -826,9 +896,13 @@ $("bNext").onclick=function(){ if(pDay>=0 && pi+1<DAY_PLAN[pDay].length) loadCha
 $("seek").addEventListener("input",function(){ seeking=true; if(au.duration) $("tCur").textContent=fmt($("seek").value/1000*au.duration); });
 $("seek").addEventListener("change",function(){ if(au.duration) au.currentTime=$("seek").value/1000*au.duration; seeking=false; });
 $("rate").value=String(PS.rate||1); if(!$("rate").value) $("rate").value="1";
-$("rate").onchange=function(){ PS.rate=parseFloat($("rate").value)||1; au.playbackRate=PS.rate; savePS(); };
+$("rate").onchange=function(){ PS.rate=parseFloat($("rate").value)||1; au.playbackRate=PS.rate; nx.playbackRate=PS.rate; savePS(); };
 window.addEventListener("pagehide",savePos);
-document.addEventListener("visibilitychange",function(){ if(!document.hidden && resumeMsg && au.paused && pDay>=0){ wantPlay=true; tryPlay(); } });
+document.addEventListener("visibilitychange",function(){
+  if(document.hidden) return;
+  if(resumeMsg && au.paused && pDay>=0){ wantPlay=true; tryPlay(); }
+  if(!au.paused) holdWake();
+});
 
 /* ════════════════════════════
    오프라인 오디오 (IndexedDB)
